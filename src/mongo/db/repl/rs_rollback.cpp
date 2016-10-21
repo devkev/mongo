@@ -171,7 +171,9 @@ struct FixUpInfo {
 };
 
 
-Status refetch(FixUpInfo& fixUpInfo, const BSONObj& ourObj) {
+Status refetch(FixUpInfo& fixUpInfo, const BSONObj& ourObj, OperationContext* txn) {
+    // If filtered node, ignore non-whitelisted ops
+    // from being put in any list in FixUpInfo
     const char* op = ourObj.getStringField("op");
     if (*op == 'n')
         return Status::OK();
@@ -204,6 +206,21 @@ Status refetch(FixUpInfo& fixUpInfo, const BSONObj& ourObj) {
                           str::stream() << "rollback no such command " << first.fieldName(),
                           18751);
         }
+
+	// Ignore if we are not replicating this db/collection
+	std::string nsCheck(nss.db().toString()); //foo
+	if (cmdname != "applyOps") {
+	    // Unless this is applyOps we are expecting a collection name
+	    // FIXME: DO WE HAVE TO CHECK IF FIRST IS EXPECTED TO BE A STRING
+	    nsCheck += '.';
+	    nsCheck += first.valuestr();  // foo.abc
+	}
+	if (!ReplicationCoordinator::get(txn)->isNamespaceReplicated(nsCheck)) {
+		log() << "Ignoring " << cmdname << " command while rollback on "
+		      << "non replicated ns: " << nsCheck;
+		return Status::OK();
+	}
+
         if (cmdname == "create") {
             // Create collection operation
             // { ts: ..., h: ..., op: "c", ns: "foo.$cmd", o: { create: "abc", ... } }
@@ -270,7 +287,7 @@ Status refetch(FixUpInfo& fixUpInfo, const BSONObj& ourObj) {
                     severe() << message;
                     return Status(ErrorCodes::UnrecoverableRollbackError, message);
                 }
-                auto subStatus = refetch(fixUpInfo, subopElement.Obj());
+                auto subStatus = refetch(fixUpInfo, subopElement.Obj(), txn);
                 if (!subStatus.isOK()) {
                     return subStatus;
                 }
@@ -284,6 +301,15 @@ Status refetch(FixUpInfo& fixUpInfo, const BSONObj& ourObj) {
     }
 
     NamespaceString nss(doc.ns);
+
+    // Ignore if we are not replicating this db/collection
+    std::string nsCheck(nss.toString()); //foo.abc
+    if (!ReplicationCoordinator::get(txn)->isNamespaceReplicated(nsCheck)) {
+	log() << "Ignoring operation while rollback on "
+	      << "non replicated ns: " << nsCheck;
+	return Status::OK();
+    }
+
     if (nss.isSystemDotIndexes()) {
         if (*op != 'i') {
             severe() << "Unexpected operation type '" << *op << "' on system.indexes operation, "
@@ -837,17 +863,15 @@ Status _syncRollback(OperationContext* txn,
         }
     }
 
-    // FIXME: Now that we have set member state to ROLLBACK,
-    // we should discard current syncSource and find a new one
-
     FixUpInfo how;
     log() << "rollback 1";
     how.rbid = rollbackSource.getRollbackId();
     {
         log() << "rollback 2 FindCommonPoint";
         try {
-            auto processOperationForFixUp = [&how](const BSONObj& operation) {
-                return refetch(how, operation);
+	    OperationContext* _txn = txn;
+            auto processOperationForFixUp = [&how, _txn](const BSONObj& operation) {
+                return refetch(how, operation, _txn);
             };
             auto res = syncRollBackLocalOperations(
                 localOplog, rollbackSource.getOplog(), processOperationForFixUp);

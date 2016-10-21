@@ -126,6 +126,47 @@ Status _applyOps(OperationContext* txn,
         if (*opType != 'c' && !NamespaceString(ns).isValid())
             return {ErrorCodes::InvalidNamespace, "invalid ns: " + ns};
 
+	// Should be able to ignore filtered ops in here
+	// ns should be foo.bar or foo.$cmd
+	if (*opType != 'c') {
+	    // not command
+	    if (!repl::ReplicationCoordinator::get(txn)->isNamespaceReplicated(ns)) {
+		    log() << "Ignoring a filtered op from being applied in _applyOps "
+			  << "NS: " << ns;
+		    continue;
+	    }
+	} else {
+	    // we have a command
+	    auto cmdns = std::string(ns);
+	    log() << "in _applyOps got a command.";
+	    log() << "cmdns = " << cmdns;
+
+	    auto dot = cmdns.find('.');
+	    if (dot != std::string::npos) {
+		cmdns = cmdns.substr(0, dot);
+		log() << "cmdns after stripping = " << cmdns;
+	    }
+
+	    // at this point cmdns has just a dbname in it.
+	    // if collection name present in command object, append with .
+	    BSONObj o = opObj.getObjectField("o");
+	    if (o.firstElementType() == BSONType::String) {
+		auto collName = o.firstElement().valuestr();
+		log() << "collName = " << collName;
+		cmdns += ".";
+		cmdns += collName;
+		log() << "cmdns after adding collName = " << cmdns;
+	    }
+
+	    // at this point, cmdns is the more appropriate of either just the dbname, or the full
+	    // namespace
+	    if (!repl::ReplicationCoordinator::get(txn)->isNamespaceReplicated(cmdns)) {
+		log() << "Ignoring a filtered command from being applied in _applyOps "
+		      << "NS: " << ns << " CMDNS: " << cmdns;
+		continue;
+	    }
+	}
+
         Status status(ErrorCodes::InternalError, "");
 
         if (haveWrappingWUOW) {
