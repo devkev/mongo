@@ -8,6 +8,7 @@
     var rt = initReplsetWithFilteredNode("filtered1");
     writeData(rt, {w: 1, wtimeout: 60 * 1000}, assert.writeOK);
 
+    rt.awaitReplication();
     checkData(rt);
     checkOplogs(rt, 1);
     checkOplogs(rt, 2);

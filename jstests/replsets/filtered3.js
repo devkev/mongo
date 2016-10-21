@@ -10,6 +10,7 @@
     writeData(rt, {w: 1, wtimeout: 60 * 1000}, assert.writeOK);
     addFilteredNode(rt);
 
+    rt.awaitReplication();
     checkData(rt);
     checkOplogs(rt, 1);
 
