@@ -1,0 +1,104 @@
+
+* Create 2 node replset:
+
+mlaunch init --replicaset --nodes 2 --binarypath .
+
+
+
+* Do some writes:
+
+./mongo
+
+db.getSiblingDB("excluded").excluded.insert({ns:"excluded.excluded"})
+db.getSiblingDB("partial").excluded.insert({ns:"partial.excluded"})
+db.getSiblingDB("included").included.insert({ns:"included.included"})
+db.getSiblingDB("partial").included.insert({ns:"partial.included"})
+
+db.getSiblingDB("excluded").excluded.find()
+db.getSiblingDB("partial").excluded.find()
+db.getSiblingDB("included").included.find()
+db.getSiblingDB("partial").included.find()
+
+
+* Start 3rd member:
+
+mkdir -p data/replset/rs3/db
+./mongod --dbpath data/replset/rs3/db --port 27019 --replSet replset --logappend --logpath data/replset/rs3/mongod.log --fork
+
+
+
+* Add it to the replset:
+
+./mongo
+
+var cfg = rs.conf()
+cfg.members.push({_id: 2, host: getHostName()+":27019", priority: 0, filter: [ "admin", "included", "partial.included" ] });
+
+cfg
+rs.reconfig(cfg)
+
+
+
+* The regular member has all the data:
+
+./mongo --port 27018
+
+rs.slaveOk()
+db.getSiblingDB("excluded").excluded.find()
+db.getSiblingDB("partial").excluded.find()
+db.getSiblingDB("included").included.find()
+db.getSiblingDB("partial").included.find()
+
+
+
+* But the filtered member only has some of the data:
+
+./mongo --port 27019
+
+rs.slaveOk()
+db.getSiblingDB("excluded").excluded.find()
+db.getSiblingDB("partial").excluded.find()
+db.getSiblingDB("included").included.find()
+db.getSiblingDB("partial").included.find()
+
+
+
+* Do some more writes:
+
+./mongo
+
+db.getSiblingDB("excluded").excluded.insert({ns:"excluded.excluded", extra: 1})
+db.getSiblingDB("partial").excluded.insert({ns:"partial.excluded", extra: 1})
+db.getSiblingDB("included").included.insert({ns:"included.included", extra: 1})
+db.getSiblingDB("partial").included.insert({ns:"partial.included", extra: 1})
+
+db.getSiblingDB("excluded").excluded.find()
+db.getSiblingDB("partial").excluded.find()
+db.getSiblingDB("included").included.find()
+db.getSiblingDB("partial").included.find()
+
+
+* See these propagate correctly:
+
+./mongo --port 27018
+
+rs.slaveOk()
+db.getSiblingDB("excluded").excluded.find()
+db.getSiblingDB("partial").excluded.find()
+db.getSiblingDB("included").included.find()
+db.getSiblingDB("partial").included.find()
+
+./mongo --port 27019
+
+rs.slaveOk()
+db.getSiblingDB("excluded").excluded.find()
+db.getSiblingDB("partial").excluded.find()
+db.getSiblingDB("included").included.find()
+db.getSiblingDB("partial").included.find()
+
+
+
+
+
+
+
