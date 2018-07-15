@@ -30,6 +30,7 @@
 #include <iosfwd>
 
 #include "mongo/logger/encoder.h"
+#include "mongo/logger/log_format.h"
 #include "mongo/logger/message_event.h"
 #include "mongo/util/time_support.h"
 
@@ -56,8 +57,11 @@ struct LogContext {
  */
 class MessageEventDocumentEncoder : public Encoder<MessageEventEphemeral> {
 public:
+    MessageEventDocumentEncoder(LogFormat format = LogFormat::JSON);
     virtual ~MessageEventDocumentEncoder();
     virtual std::ostream& encode(const MessageEventEphemeral& event, std::ostream& os);
+private:
+    LogFormat _format;
 };
 
 /**
