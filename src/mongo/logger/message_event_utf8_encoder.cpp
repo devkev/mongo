@@ -31,6 +31,7 @@
 
 #include <iostream>
 
+#include "mongo/bson/bsonobjbuilder.h"
 #include "mongo/util/time_support.h"
 
 namespace mongo {
@@ -79,6 +80,29 @@ constexpr auto kEOL = "\r\n"_sd;
 constexpr auto kEOL = "\n"_sd;
 #endif
 }  // namespace
+
+MessageEventDocumentEncoder::~MessageEventDocumentEncoder() {}
+std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
+                                                  std::ostream& os) {
+    auto date = event.getDate();
+    auto severity = event.getSeverity();
+    LogComponent component = event.getComponent();
+    StringData contextName = event.getContextName();
+    StringData msg = event.getMessage();
+
+    BSONObjBuilder bob;
+    bob << "t" << date;
+    bob << "s" << severity.toStringData();
+    bob << "c" << component.getNameForLog();
+    if (!contextName.empty()) {
+        bob << "ctx" << contextName;
+    }
+    bob.append("msg", msg);
+
+    os << bob.obj().jsonString(Strict, 0, false) << kEOL;
+
+    return os;
+}
 
 MessageEventDetailsEncoder::~MessageEventDetailsEncoder() {}
 std::ostream& MessageEventDetailsEncoder::encode(const MessageEventEphemeral& event,
