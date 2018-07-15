@@ -38,6 +38,7 @@
 #include "mongo/logger/log_component.h"
 #include "mongo/logger/log_severity.h"
 #include "mongo/logger/message_log_domain.h"
+#include "mongo/logger/messages.h"
 #include "mongo/stdx/chrono.h"
 #include "mongo/util/exit_code.h"
 
@@ -115,7 +116,7 @@ public:
         return *this;
     }
 
-    std::ostream& stream() {
+    Messages& stream() {
         if (!_os)
             makeStream();
         return *_os;
@@ -245,7 +246,8 @@ private:
     LogSeverity _severity;
     LogComponent _component;
     std::string _baseMessage;
-    std::unique_ptr<std::ostringstream> _os;
+    //std::unique_ptr<std::ostringstream> _os;
+    std::unique_ptr<Messages> _os;
     Tee* _tee;
     bool _isTruncatable = true;
     bool _shouldCache;

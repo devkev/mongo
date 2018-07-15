@@ -33,6 +33,7 @@
 #include "mongo/bson/bsonobj.h"
 #include "mongo/logger/log_component.h"
 #include "mongo/logger/log_severity.h"
+#include "mongo/logger/messages.h"
 #include "mongo/util/time_support.h"
 
 namespace mongo {
@@ -49,14 +50,14 @@ public:
     MessageEventEphemeral(Date_t date,
                           LogSeverity severity,
                           StringData contextName,
-                          BSONArray messages)
+                          const Messages& messages)
         : MessageEventEphemeral(date, severity, LogComponent::kDefault, contextName, "", messages) {}
 
     MessageEventEphemeral(Date_t date,
                           LogSeverity severity,
                           StringData contextName,
                           StringData baseMessage,
-                          BSONArray messages = BSONArray())  // FIXME: get rid of this default value
+                          const Messages& messages = Messages{})  // FIXME: get rid of this default value
         : MessageEventEphemeral(date, severity, LogComponent::kDefault, contextName, baseMessage, messages) {}
 
     MessageEventEphemeral(Date_t date,
@@ -64,7 +65,7 @@ public:
                           LogComponent component,
                           StringData contextName,
                           StringData baseMessage,
-                          BSONArray messages = BSONArray())  // FIXME: get rid of this default value
+                          const Messages& messages = Messages{})  // FIXME: get rid of this default value
         : _date(date),
           _severity(severity),
           _component(component),
@@ -92,7 +93,7 @@ public:
     StringData getBaseMessage() const {
         return _baseMessage;
     }
-    const BSONArray& getMessages() const {
+    const Messages& getMessages() const {
         return _messages;
     }
     bool isTruncatable() const {
@@ -105,7 +106,7 @@ private:
     LogComponent _component;
     StringData _contextName;
     StringData _baseMessage;
-    BSONArray _messages;
+    const Messages& _messages;
     bool _isTruncatable = true;
 };
 
