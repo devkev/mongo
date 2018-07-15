@@ -191,20 +191,52 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
     if (!contextName.empty()) {
         os << '[' << contextName << "] ";
     }
-    StringData message = event.getBaseMessage();
-    os << message;
-    if (!message.endsWith("\n"))
+    StringData baseMessage = event.getBaseMessage();
+    os << baseMessage;
+
+    auto messages = event.getMessages();
+    bool hadEOL = false;
+    for (auto elem : messages) {
+        if (elem.type() == mongo::String) {
+            // avoid being wrapped in \" chars
+            const auto& s = elem.valuestr();
+            hadEOL = StringData(s).endsWith("\n");
+            os << s;
+        } else {
+            const auto& s = elem.toString(false, true);
+            hadEOL = StringData(s).endsWith("\n");
+            os << s;
+        }
+    }
+    if (!hadEOL)
         os << '\n';
+
     return os;
 }
 
 MessageEventUnadornedEncoder::~MessageEventUnadornedEncoder() {}
 std::ostream& MessageEventUnadornedEncoder::encode(const MessageEventEphemeral& event,
                                                    std::ostream& os) {
-    StringData message = event.getBaseMessage();
-    os << message;
-    if (!message.endsWith("\n"))
+    StringData baseMessage = event.getBaseMessage();
+    os << baseMessage;
+
+    auto messages = event.getMessages();
+    bool hadEOL = false;
+    for (auto elem : messages) {
+        if (elem.type() == mongo::String) {
+            // avoid being wrapped in \" chars
+            const auto& s = elem.valuestr();
+            hadEOL = StringData(s).endsWith("\n");
+            os << s;
+        } else {
+            const auto& s = elem.toString(false, true);
+            hadEOL = StringData(s).endsWith("\n");
+            os << s;
+        }
+    }
+    if (!hadEOL)
         os << '\n';
+
     return os;
 }
 
