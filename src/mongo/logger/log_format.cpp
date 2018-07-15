@@ -54,6 +54,7 @@ Status resolveDefaultLogFormat(const LogFormat& defaultFormat) {
         serverGlobalParams.logFormat = defaultFormat;
     }
     invariant(serverGlobalParams.logFormat != LogFormat::Default);
+
     if (serverGlobalParams.logAppend) {
         if (serverGlobalParams.logFormat == LogFormat::JSON) {
             return Status(ErrorCodes::BadValue, "logFormat json doesn't support logAppend");
@@ -62,19 +63,26 @@ Status resolveDefaultLogFormat(const LogFormat& defaultFormat) {
             return Status(ErrorCodes::BadValue, "logFormat bson doesn't support logAppend");
         }
     }
+
+    // Prohibit BSON to the console (ie. without a logpath)?
+    // No, because it's legitimate for users to want to do:
+    //     mongod --logFormat bson | bsondump
+    //     mongod --logFormat bson | filter > mongod-log.bson
+
     return Status::OK();
 }
 
 std::unique_ptr<Encoder<MessageEventEphemeral>> makeUniqueMessageEventEncoder() {
     invariant(serverGlobalParams.logFormat != LogFormat::Default);
-    if (serverGlobalParams.logFormat == LogFormat::Plain) {
-        return std::make_unique<MessageEventDetailsEncoder>();
-    } else if (serverGlobalParams.logFormat == LogFormat::JSON) {
-        return std::make_unique<MessageEventDocumentEncoder>();
-    } else if (serverGlobalParams.logFormat == LogFormat::BSON) {
-        return std::make_unique<MessageEventDocumentEncoder>();  // FIXME
+    switch (serverGlobalParams.logFormat) {
+        case LogFormat::Plain:
+            return std::make_unique<MessageEventDetailsEncoder>();
+        case LogFormat::JSON:
+        case LogFormat::BSON:
+            return std::make_unique<MessageEventDocumentEncoder>(serverGlobalParams.logFormat);
+        default:
+            MONGO_UNREACHABLE;
     }
-    MONGO_UNREACHABLE;
 }
 
 }  // namespace logger
