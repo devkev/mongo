@@ -93,7 +93,9 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     BSONObjBuilder bob;
     bob << "t" << date;
     bob << "s" << severity.toStringData();
-    bob << "c" << component.getNameForLog();
+    if (component > LogComponent::kDefault && component < LogComponent::kNumLogComponents) {
+        bob << "c" << component.toStringData();
+    }
     if (!contextName.empty()) {
         bob << "ctx" << contextName;
     }
