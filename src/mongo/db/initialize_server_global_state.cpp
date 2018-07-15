@@ -297,14 +297,19 @@ MONGO_INITIALIZER_GENERAL(ServerLogRedirection,
             return writer.getStatus();
         }
 
+        Status status = logger::resolveDefaultLogFormat(logger::DEFAULT_LOG_FORMAT_FILE);
+        if (!status.isOK()) {
+            return status;
+        }
+
         LogManager* manager = logger::globalLogManager();
         manager->getGlobalDomain()->clearAppenders();
         manager->getGlobalDomain()->attachAppender(
             std::make_unique<RotatableFileAppender<MessageEventEphemeral>>(
-                std::make_unique<MessageEventDetailsEncoder>(), writer.getValue()));
+                logger::makeUniqueMessageEventEncoder(), writer.getValue()));
         manager->getNamedDomain("javascriptOutput")
             ->attachAppender(std::make_unique<RotatableFileAppender<MessageEventEphemeral>>(
-                std::make_unique<MessageEventDetailsEncoder>(), writer.getValue()));
+                logger::makeUniqueMessageEventEncoder(), writer.getValue()));
 
         if (serverGlobalParams.logAppend && exists) {
             log() << "***** SERVER RESTARTED *****";
@@ -313,10 +318,19 @@ MONGO_INITIALIZER_GENERAL(ServerLogRedirection,
                 return status;
         }
     } else {
-        logger::globalLogManager()
-            ->getNamedDomain("javascriptOutput")
+        Status status = logger::resolveDefaultLogFormat(logger::DEFAULT_LOG_FORMAT_CONSOLE);
+        if (!status.isOK()) {
+            return status;
+        }
+
+        LogManager* manager = logger::globalLogManager();
+        manager->getGlobalDomain()->clearAppenders();
+        manager->getGlobalDomain()->attachAppender(
+            std::make_unique<logger::ConsoleAppender<MessageEventEphemeral>>(
+                logger::makeUniqueMessageEventEncoder()));
+        manager->getNamedDomain("javascriptOutput")
             ->attachAppender(std::make_unique<logger::ConsoleAppender<MessageEventEphemeral>>(
-                std::make_unique<MessageEventDetailsEncoder>()));
+                logger::makeUniqueMessageEventEncoder()));
     }
 
     logger::globalLogDomain()->attachAppender(

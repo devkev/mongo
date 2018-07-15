@@ -28,6 +28,7 @@
 #pragma once
 
 #include "mongo/db/jsobj.h"
+#include "mongo/logger/log_format.h"
 #include "mongo/platform/atomic_word.h"
 #include "mongo/platform/process_id.h"
 
@@ -91,6 +92,7 @@ struct ServerGlobalParams {
     bool logRenameOnRotate = true;  // True if logging should rename log files on rotate
     bool logWithSyslog = false;     // True if logging to syslog; must not be set if logpath is set.
     int syslogFacility;             // Facility used when appending messages to the syslog.
+    logger::LogFormat logFormat = logger::LogFormat::Default;            // Format to use when logging messages.
 
 #ifndef _WIN32
     ProcessId parentProc;  // --fork pid of initial process

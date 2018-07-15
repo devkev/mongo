@@ -30,7 +30,7 @@
 #include "mongo/logger/log_manager.h"
 
 #include "mongo/logger/console_appender.h"
-#include "mongo/logger/message_event_utf8_encoder.h"
+#include "mongo/logger/log_format.h"
 
 namespace mongo {
 namespace logger {
@@ -61,9 +61,10 @@ void LogManager::detachDefaultConsoleAppender() {
 
 void LogManager::reattachDefaultConsoleAppender() {
     invariant(!_defaultAppender);
+    invariant(logger::resolveDefaultLogFormat(logger::DEFAULT_LOG_FORMAT_CONSOLE).isOK());
     _defaultAppender =
         _globalDomain.attachAppender(std::make_unique<ConsoleAppender<MessageEventEphemeral>>(
-            std::make_unique<MessageEventDetailsEncoder>()));
+            logger::makeUniqueMessageEventEncoder()));
 }
 
 bool LogManager::isDefaultConsoleAppenderAttached() const {
