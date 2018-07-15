@@ -52,6 +52,15 @@ struct LogContext {
 };
 
 /**
+ * Encoder that writes log messages in a document-structured way (eg. JSON, BSON, ...).
+ */
+class MessageEventDocumentEncoder : public Encoder<MessageEventEphemeral> {
+public:
+    virtual ~MessageEventDocumentEncoder();
+    virtual std::ostream& encode(const MessageEventEphemeral& event, std::ostream& os);
+};
+
+/**
  * Encoder that writes log messages of the style that MongoDB writes to console and files.
  */
 class MessageEventDetailsEncoder : public Encoder<MessageEventEphemeral> {
