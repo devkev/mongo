@@ -98,7 +98,7 @@ LogstreamBuilder::~LogstreamBuilder() {
             _baseMessage.push_back(' ');
         _baseMessage += _os->str();
         MessageEventEphemeral message(
-            Date_t::now(), _severity, _component, _contextName, _baseMessage);
+            Date_t::now(), _severity, _component, _contextName, _baseMessage, BSONArray());
         message.setIsTruncatable(_isTruncatable);
         _domain->append(message).transitional_ignore();
         if (_tee) {

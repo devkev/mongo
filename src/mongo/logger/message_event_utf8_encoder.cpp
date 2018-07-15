@@ -95,7 +95,8 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     auto severity = event.getSeverity();
     LogComponent component = event.getComponent();
     StringData contextName = event.getContextName();
-    StringData msg = event.getMessage();
+    StringData baseMessage = event.getBaseMessage();
+    const BSONArray& messages = event.getMessages();
 
     BSONObjBuilder bob;
     bob << "t" << date;
@@ -104,7 +105,8 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     if (!contextName.empty()) {
         bob << "ctx" << contextName;
     }
-    bob.append("msg", msg);
+    bob.append("base", baseMessage);
+    bob.appendArray("msg", messages);
 
     BSONObj obj = bob.obj();
     switch (_format) {
@@ -143,7 +145,7 @@ std::ostream& MessageEventDetailsEncoder::encode(const MessageEventEphemeral& ev
         os << '[' << contextName << "] ";
     }
 
-    StringData msg = event.getMessage();
+    StringData msg = event.getBaseMessage();
 
 #ifdef _WIN32
     // We need to translate embedded Unix style line endings into Windows style endings.
@@ -187,7 +189,7 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
     if (!contextName.empty()) {
         os << '[' << contextName << "] ";
     }
-    StringData message = event.getMessage();
+    StringData message = event.getBaseMessage();
     os << message;
     if (!message.endsWith("\n"))
         os << '\n';
@@ -197,7 +199,7 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
 MessageEventUnadornedEncoder::~MessageEventUnadornedEncoder() {}
 std::ostream& MessageEventUnadornedEncoder::encode(const MessageEventEphemeral& event,
                                                    std::ostream& os) {
-    StringData message = event.getMessage();
+    StringData message = event.getBaseMessage();
     os << message;
     if (!message.endsWith("\n"))
         os << '\n';
