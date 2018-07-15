@@ -81,7 +81,14 @@ constexpr auto kEOL = "\n"_sd;
 #endif
 }  // namespace
 
+MessageEventDocumentEncoder::MessageEventDocumentEncoder(LogFormat format)
+: _format(format)
+{
+    invariant(_format == LogFormat::JSON || _format == LogFormat::BSON);
+}
+
 MessageEventDocumentEncoder::~MessageEventDocumentEncoder() {}
+
 std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
                                                   std::ostream& os) {
     auto date = event.getDate();
@@ -99,7 +106,17 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     }
     bob.append("msg", msg);
 
-    os << bob.obj().jsonString(Strict, 0, false) << kEOL;
+    BSONObj obj = bob.obj();
+    switch (_format) {
+        case LogFormat::JSON:
+            os << obj.jsonString(Strict, 0, false) << kEOL;
+            break;
+        case LogFormat::BSON:
+            os.write(obj.objdata(), obj.objsize());
+            break;
+        default:
+            MONGO_UNREACHABLE;
+    }
 
     return os;
 }
