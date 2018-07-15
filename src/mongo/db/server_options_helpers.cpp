@@ -210,6 +210,11 @@ Status addBaseServerOptions(moe::OptionSection* options) {
                                "syslog facility used for mongodb syslog message");
 
 #endif  // _WIN32
+    options->addOptionChaining("systemLog.logFormat",
+                               "logFormat",
+                               moe::String,
+                               "format to use for logging (default|plain|json|bson)");
+
     options->addOptionChaining("systemLog.logAppend",
                                "logappend",
                                moe::Switch,
@@ -504,6 +509,15 @@ Status storeBaseOptions(const moe::Environment& params) {
 
     if (params.count("systemLog.logAppend") && params["systemLog.logAppend"].as<bool>() == true) {
         serverGlobalParams.logAppend = true;
+    }
+
+    if (params.count("systemLog.logFormat")) {
+        auto logFormat = logger::parseLogFormat(params["systemLog.logFormat"].as<string>());
+        if (logFormat.isOK()) {
+            serverGlobalParams.logFormat = logFormat.getValue();
+        } else {
+            return logFormat.getStatus();
+        }
     }
 
     if (params.count("systemLog.logRotate")) {

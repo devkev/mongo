@@ -76,9 +76,10 @@ logger::LogstreamBuilder log() {
 }
 
 void setupTestLogger() {
+    invariant(logger::resolveDefaultLogFormat(logger::DEFAULT_LOG_FORMAT_UNITTEST).isOK());
     unittestOutput->attachAppender(
         std::make_unique<logger::ConsoleAppender<logger::MessageLogDomain::Event>>(
-            std::make_unique<logger::MessageEventDetailsEncoder>()));
+            logger::makeUniqueMessageEventEncoder()));
 }
 
 MONGO_INITIALIZER_WITH_PREREQUISITES(UnitTestOutput, ("GlobalLogManager", "default"))
