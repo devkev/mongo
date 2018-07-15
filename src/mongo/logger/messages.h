@@ -28,7 +28,7 @@
 #pragma once
 
 #include <cstdint>
-#include <boost/variant>
+#include <variant>
 #include <vector>
 
 #include "mongo/base/string_data.h"
@@ -60,7 +60,7 @@ struct VariantContainer {
         objects.clear();
     }
 
-    using value_type = boost::variant<T...>;
+    using value_type = std::variant<T...>;
     std::vector<value_type> objects;
 };
 
