@@ -64,6 +64,16 @@ public:
         _out << x.toString();
     }
 
+    void operator()(const unsigned long& x) {
+        // blahhhhhhhhh
+        _out << static_cast<long>(x);
+    }
+
+    void operator()(const unsigned long long& x) {
+        // blahhhhhhhhh
+        _out << static_cast<long long>(x);
+    }
+
 #define _FOO(XXX) void operator()(const XXX& x) { _out << x; }
 
 _FOO(std::string)
@@ -72,13 +82,13 @@ _FOO(char)
 _FOO(int)
 _FOO(ExitCode)
 _FOO(long)
-_FOO(unsigned long)
+//_FOO(unsigned long)
 _FOO(unsigned)
 _FOO(unsigned short)
 _FOO(double)
 _FOO(void*)
 _FOO(long long)
-_FOO(unsigned long long)
+//_FOO(unsigned long long)
 //_FOO(Timestamp)
 _FOO(bool)
 

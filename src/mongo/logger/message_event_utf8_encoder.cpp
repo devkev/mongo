@@ -113,7 +113,7 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
 
     //bob.appendArray("msg", messages);
     BSONArrayBuilder bab;
-    //messages.toBSONArray(bab);
+    messages.toBSONArray(bab);
     bob.appendArray("msg", bab.arr());
 
     BSONObj obj = bob.obj();
@@ -153,7 +153,13 @@ std::ostream& MessageEventDetailsEncoder::encode(const MessageEventEphemeral& ev
         os << '[' << contextName << "] ";
     }
 
-    StringData msg = event.getBaseMessage();
+    os << event.getBaseMessage();
+
+    auto messages = event.getMessages();
+    bool hadEOL = false;
+    std::ostringstream ostr;
+    messages.toString(ostr, hadEOL);
+    StringData msg{ostr.str()};
 
 #ifdef _WIN32
     // We need to translate embedded Unix style line endings into Windows style endings.
