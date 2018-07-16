@@ -66,6 +66,7 @@ public:
 
 #define _FOO(XXX) void operator()(const XXX& x) { _out << x; }
 
+_FOO(std::string)
 _FOO(StringData)
 _FOO(char)
 _FOO(int)
@@ -168,6 +169,7 @@ struct VariantContainer {
 //}
 
 typedef struct VariantContainer<StringData,
+                                std::string,
                                 char,
                                 int,
                                 ExitCode,
