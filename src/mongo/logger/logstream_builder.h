@@ -123,18 +123,22 @@ public:
     }
 
     LogstreamBuilder& operator<<(const char* x) {
+        //std::cerr << "in: const char* x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(const std::string& x) {
+        //std::cerr << "in: const std::string& x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(StringData x) {
+        //std::cerr << "in: StringData x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(char* x) {
+        //std::cerr << "in: char* x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }

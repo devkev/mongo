@@ -155,13 +155,19 @@ std::ostream& MessageEventDetailsEncoder::encode(const MessageEventEphemeral& ev
         os << '[' << contextName << "] ";
     }
 
-    os << event.getBaseMessage();
+    StringData baseMessage = event.getBaseMessage();
+    if (!baseMessage.empty()) {
+        os << baseMessage << " ";
+    }
 
     auto messages = event.getMessages();
     bool hadEOL = false;
     std::ostringstream ostr;
     messages.toString(ostr, hadEOL);
-    StringData msg{ostr.str()};
+    std::string s = ostr.str();
+    //std::cerr << "out: std::string s = \"" << s << "\"" << std::endl;
+    StringData msg{s};
+    //std::cerr << "out: StringData msg = \"" << msg << "\"" << std::endl;
 
 #ifdef _WIN32
     // We need to translate embedded Unix style line endings into Windows style endings.
