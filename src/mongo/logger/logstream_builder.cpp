@@ -94,9 +94,6 @@ LogstreamBuilder::LogstreamBuilder(logger::MessageLogDomain* domain,
 
 LogstreamBuilder::~LogstreamBuilder() {
     if (_os) {
-        //if (!_baseMessage.empty())
-        //    _baseMessage.push_back(' ');
-        //_baseMessage += _os->str();
         MessageEventEphemeral message(
             Date_t::now(), _severity, _component, _contextName, _baseMessage, stream());
         message.setIsTruncatable(_isTruncatable);

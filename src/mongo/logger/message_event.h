@@ -51,7 +51,6 @@ public:
                           LogSeverity severity,
                           StringData contextName,
                           const Messages& messages)
-                          //Messages& messages)
         : MessageEventEphemeral(date, severity, LogComponent::kDefault, contextName, "", messages) {}
 
     MessageEventEphemeral(Date_t date,
@@ -59,7 +58,6 @@ public:
                           StringData contextName,
                           StringData baseMessage,
                           const Messages& messages = Messages{})  // FIXME: get rid of this default value
-                          //Messages& messages)
         : MessageEventEphemeral(date, severity, LogComponent::kDefault, contextName, baseMessage, messages) {}
 
     MessageEventEphemeral(Date_t date,
@@ -68,7 +66,6 @@ public:
                           StringData contextName,
                           StringData baseMessage,
                           const Messages& messages = Messages{})  // FIXME: get rid of this default value
-                          //Messages& messages)
         : _date(date),
           _severity(severity),
           _component(component),

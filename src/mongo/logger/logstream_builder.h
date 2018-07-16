@@ -123,22 +123,18 @@ public:
     }
 
     LogstreamBuilder& operator<<(const char* x) {
-        //std::cerr << "in: const char* x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(const std::string& x) {
-        //std::cerr << "in: const std::string& x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(StringData x) {
-        //std::cerr << "in: StringData x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(char* x) {
-        //std::cerr << "in: char* x = \"" << x << "\"" << std::endl;
         stream() << x;
         return *this;
     }
@@ -195,15 +191,8 @@ public:
         return *this;
     }
 
-    // Why does this work, but Messages::value_type below doesn't work to auto-convert the Timestamp to std::variant<..., Timestamp, ...> ???
-    //LogstreamBuilder& operator<<(const Timestamp& x) {
-    //    stream() << x;
-    //    return *this;
-    //}
-
     LogstreamBuilder& operator<<(const Messages::value_type& x) {
         stream() << x;
-        //stream() << Messages::value_type(x);  // no dice
         return *this;
     }
 
@@ -238,18 +227,9 @@ public:
 
     template <typename T>
     LogstreamBuilder& operator<<(const T& x) {
-        //stream() << x.toString();
-        (*this) << x.toString();
+        stream() << x.toString();
         return *this;
     }
-
-    //template <typename X>
-    //LogstreamBuilder& operator<<(const X& x) {
-    //    std::ostringstream os;
-    //    os << x;
-    //    (*this) << os.str();
-    //    return *this;
-    //}
 
     LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
         stream() << manip;
@@ -284,7 +264,6 @@ private:
     LogSeverity _severity;
     LogComponent _component;
     std::string _baseMessage;
-    //std::unique_ptr<std::ostringstream> _os;
     std::unique_ptr<Messages> _os;
     Tee* _tee;
     bool _isTruncatable = true;

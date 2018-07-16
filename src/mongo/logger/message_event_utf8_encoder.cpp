@@ -96,9 +96,7 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     LogComponent component = event.getComponent();
     StringData contextName = event.getContextName();
     StringData baseMessage = event.getBaseMessage();
-    //const BSONArray& messages = event.getMessages();
     const Messages& messages = event.getMessages();
-    //Messages& messages = event.getMessages();
 
     BSONObjBuilder bob;
     bob << "t" << date;
@@ -113,7 +111,6 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
         bob.append("base", baseMessage);
     }
 
-    //bob.appendArray("msg", messages);
     BSONArrayBuilder bab;
     messages.toBSONArray(bab);
     bob.appendArray("msg", bab.arr());
@@ -157,17 +154,12 @@ std::ostream& MessageEventDetailsEncoder::encode(const MessageEventEphemeral& ev
 
     StringData baseMessage = event.getBaseMessage();
     if (!baseMessage.empty()) {
-        os << baseMessage << " ";
+        os << baseMessage << ' ';
     }
 
     auto messages = event.getMessages();
-    bool hadEOL = false;
-    std::ostringstream ostr;
-    messages.toString(ostr, hadEOL);
-    std::string s = ostr.str();
-    //std::cerr << "out: std::string s = \"" << s << "\"" << std::endl;
+    std::string s = messages.toString();
     StringData msg{s};
-    //std::cerr << "out: StringData msg = \"" << msg << "\"" << std::endl;
 
 #ifdef _WIN32
     // We need to translate embedded Unix style line endings into Windows style endings.
@@ -212,25 +204,13 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
         os << '[' << contextName << "] ";
     }
     StringData baseMessage = event.getBaseMessage();
-    os << baseMessage;
+    if (!baseMessage.empty()) {
+        os << baseMessage << ' ';
+    }
 
     auto messages = event.getMessages();
-    bool hadEOL = false;
-    messages.toString(os, hadEOL);
-    //for (auto elem : messages) {
-    //    if (elem.type() == mongo::String) {
-    //        // avoid being wrapped in \" chars
-    //        const auto& s = elem.valuestr();
-    //        hadEOL = StringData(s).endsWith("\n");
-    //        os << s;
-    //    } else {
-    //        const auto& s = elem.toString(false, true);
-    //        hadEOL = StringData(s).endsWith("\n");
-    //        os << s;
-    //    }
-    //}
-    if (!hadEOL)
-        os << '\n';
+    messages.toString(os);
+    os << '\n';
 
     return os;
 }
@@ -238,26 +218,16 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
 MessageEventUnadornedEncoder::~MessageEventUnadornedEncoder() {}
 std::ostream& MessageEventUnadornedEncoder::encode(const MessageEventEphemeral& event,
                                                    std::ostream& os) {
+    // So much sad repeated code....
+
     StringData baseMessage = event.getBaseMessage();
-    os << baseMessage;
+    if (!baseMessage.empty()) {
+        os << baseMessage << ' ';
+    }
 
     auto messages = event.getMessages();
-    bool hadEOL = false;
-    messages.toString(os, hadEOL);
-    //for (auto elem : messages) {
-    //    if (elem.type() == mongo::String) {
-    //        // avoid being wrapped in \" chars
-    //        const auto& s = elem.valuestr();
-    //        hadEOL = StringData(s).endsWith("\n");
-    //        os << s;
-    //    } else {
-    //        const auto& s = elem.toString(false, true);
-    //        hadEOL = StringData(s).endsWith("\n");
-    //        os << s;
-    //    }
-    //}
-    if (!hadEOL)
-        os << '\n';
+    messages.toString(os);
+    os << '\n';
 
     return os;
 }
