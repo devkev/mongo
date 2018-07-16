@@ -109,7 +109,9 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     if (!contextName.empty()) {
         bob << "ctx" << contextName;
     }
-    bob.append("base", baseMessage);
+    if (!baseMessage.empty()) {
+        bob.append("base", baseMessage);
+    }
 
     //bob.appendArray("msg", messages);
     BSONArrayBuilder bab;
