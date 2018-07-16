@@ -39,15 +39,19 @@
 #include "mongo/platform/windows_basic.h"
 #endif
 
+#include "mongo/logger/logstream_builder.h"
+
 namespace mongo {
 
 // Print stack trace information to "os", default to the log stream.
 void printStackTrace(std::ostream& os);
+void printStackTrace(logger::LogstreamBuilder& os);
 void printStackTrace();
 
 #if defined(_WIN32)
 // Print stack trace (using a specified stack context) to "os", default to the log stream.
 void printWindowsStackTrace(CONTEXT& context, std::ostream& os);
+void printWindowsStackTrace(CONTEXT& context, logger::LogstreamBuilder& os);
 void printWindowsStackTrace(CONTEXT& context);
 
 // Print error message from C runtime followed by stack trace

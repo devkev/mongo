@@ -40,13 +40,13 @@ namespace mongo {
 void printStackTrace() {
     // NOTE: We disable long-line truncation for the stack trace, because the JSON representation of
     // the stack trace can sometimes exceed the long line limit.
-    printStackTrace(log().setIsTruncatable(false).stream());
+    printStackTrace(log().setIsTruncatable(false));
 }
 
 #if defined(_WIN32)
 
 void printWindowsStackTrace(CONTEXT& context) {
-    printWindowsStackTrace(context, log().stream());
+    printWindowsStackTrace(context, log());
 }
 
 #endif  // defined(_WIN32)

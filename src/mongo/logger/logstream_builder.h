@@ -191,9 +191,34 @@ public:
         return *this;
     }
 
+    // Why does this work, but Messages::value_type below doesn't work to auto-convert the Timestamp to std::variant<..., Timestamp, ...> ???
+    //LogstreamBuilder& operator<<(const Timestamp& x) {
+    //    stream() << x;
+    //    return *this;
+    //}
+
+    LogstreamBuilder& operator<<(const Messages::value_type& x) {
+        stream() << x;
+        //stream() << Messages::value_type(x);  // no dice
+        return *this;
+    }
+
+    // FIXME: handle this "properly", rather than "cheating" by using the generic ostringstream function below.
+    //template <typename Period>
+    //LogstreamBuilder& operator<<(const Duration<Period>& d) {
+    //    stream() << d;
+    //    return *this;
+    //}
     template <typename Period>
-    LogstreamBuilder& operator<<(const Duration<Period>& d) {
-        stream() << d;
+    LogstreamBuilder& operator<<(const Duration<Period>& x) {
+        // FIXME: don't convert to string
+        // There are 6 Durations listed in util/duration.h.
+        // Add them all to Messages, and then the Messages::value_type above should take care of them all.
+        // And then the DetailsEncoder can just convert to string as normal,
+        // whereas the DocumentEncoder can do something like { $duration: 12, units: "ms" } or { $duration: [ 12, "ms" ] } or { $ms: 12 } or { $secs: 60 }, etc.
+        std::ostringstream os;
+        os << x;
+        (*this) << os.str();
         return *this;
     }
 
@@ -209,9 +234,18 @@ public:
 
     template <typename T>
     LogstreamBuilder& operator<<(const T& x) {
-        stream() << x.toString();
+        //stream() << x.toString();
+        (*this) << x.toString();
         return *this;
     }
+
+    //template <typename X>
+    //LogstreamBuilder& operator<<(const X& x) {
+    //    std::ostringstream os;
+    //    os << x;
+    //    (*this) << os.str();
+    //    return *this;
+    //}
 
     LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
         stream() << manip;

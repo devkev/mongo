@@ -70,7 +70,8 @@ public:
     LogMessageBase(::mongo::logger::LogstreamBuilder builder);
     LogMessageBase(::mongo::logger::LogstreamBuilder builder, const char* file, int line);
     virtual ~LogMessageBase() { };
-    std::ostream& stream() { return _lsb.stream(); }
+    //::mongo::logger::LogstreamBuilder& stream() { return _lsb; }
+    ::mongo::logger::Messages& stream() { return _lsb.stream(); }
 protected:
     // Fatal message will deconstruct it before abort to flush final message.
     mongo::logger::LogstreamBuilder _lsb;

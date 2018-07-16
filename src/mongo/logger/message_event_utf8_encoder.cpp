@@ -96,7 +96,8 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     LogComponent component = event.getComponent();
     StringData contextName = event.getContextName();
     StringData baseMessage = event.getBaseMessage();
-    const BSONArray& messages = event.getMessages();
+    //const BSONArray& messages = event.getMessages();
+    const Messages& messages = event.getMessages();
 
     BSONObjBuilder bob;
     bob << "t" << date;
@@ -108,7 +109,11 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
         bob << "ctx" << contextName;
     }
     bob.append("base", baseMessage);
-    bob.appendArray("msg", messages);
+
+    //bob.appendArray("msg", messages);
+    BSONArrayBuilder bab;
+    //messages.toBSONArray(bab);
+    bob.appendArray("msg", bab.arr());
 
     BSONObj obj = bob.obj();
     switch (_format) {
@@ -196,18 +201,19 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
 
     auto messages = event.getMessages();
     bool hadEOL = false;
-    for (auto elem : messages) {
-        if (elem.type() == mongo::String) {
-            // avoid being wrapped in \" chars
-            const auto& s = elem.valuestr();
-            hadEOL = StringData(s).endsWith("\n");
-            os << s;
-        } else {
-            const auto& s = elem.toString(false, true);
-            hadEOL = StringData(s).endsWith("\n");
-            os << s;
-        }
-    }
+    messages.toString(os, hadEOL);
+    //for (auto elem : messages) {
+    //    if (elem.type() == mongo::String) {
+    //        // avoid being wrapped in \" chars
+    //        const auto& s = elem.valuestr();
+    //        hadEOL = StringData(s).endsWith("\n");
+    //        os << s;
+    //    } else {
+    //        const auto& s = elem.toString(false, true);
+    //        hadEOL = StringData(s).endsWith("\n");
+    //        os << s;
+    //    }
+    //}
     if (!hadEOL)
         os << '\n';
 
@@ -222,18 +228,19 @@ std::ostream& MessageEventUnadornedEncoder::encode(const MessageEventEphemeral& 
 
     auto messages = event.getMessages();
     bool hadEOL = false;
-    for (auto elem : messages) {
-        if (elem.type() == mongo::String) {
-            // avoid being wrapped in \" chars
-            const auto& s = elem.valuestr();
-            hadEOL = StringData(s).endsWith("\n");
-            os << s;
-        } else {
-            const auto& s = elem.toString(false, true);
-            hadEOL = StringData(s).endsWith("\n");
-            os << s;
-        }
-    }
+    messages.toString(os, hadEOL);
+    //for (auto elem : messages) {
+    //    if (elem.type() == mongo::String) {
+    //        // avoid being wrapped in \" chars
+    //        const auto& s = elem.valuestr();
+    //        hadEOL = StringData(s).endsWith("\n");
+    //        os << s;
+    //    } else {
+    //        const auto& s = elem.toString(false, true);
+    //        hadEOL = StringData(s).endsWith("\n");
+    //        os << s;
+    //    }
+    //}
     if (!hadEOL)
         os << '\n';
 
