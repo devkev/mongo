@@ -98,6 +98,7 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     StringData baseMessage = event.getBaseMessage();
     //const BSONArray& messages = event.getMessages();
     const Messages& messages = event.getMessages();
+    //Messages& messages = event.getMessages();
 
     BSONObjBuilder bob;
     bob << "t" << date;

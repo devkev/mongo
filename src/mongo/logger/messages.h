@@ -44,7 +44,7 @@ namespace mongo {
 
 namespace logger {
 
-namespace {
+//namespace {
 
 template <class Output>
 class Appenderer {
@@ -60,6 +60,10 @@ public:
     //    _out << x;
     //}
 
+    void operator()(const Timestamp& x) {
+        _out << x.toString();
+    }
+
 #define _FOO(XXX) void operator()(const XXX& x) { _out << x; }
 
 _FOO(StringData)
@@ -71,10 +75,10 @@ _FOO(unsigned long)
 _FOO(unsigned)
 _FOO(unsigned short)
 _FOO(double)
-_FOO(const void*)
+_FOO(void*)
 _FOO(long long)
 _FOO(unsigned long long)
-_FOO(Timestamp)
+//_FOO(Timestamp)
 _FOO(bool)
 
 private:
@@ -87,15 +91,16 @@ struct VariantContainer {
     //template<class V>
     //void visit(V&& visitor) {
     //    for (auto& object : objects) {
-    //        std::visit(visitor, object);
+    //        //std::visit(visitor, object);
+    //        visitor(object);
     //    }
     //}
 
     template<class V>
     void visit(V&& visitor) const {
         for (const auto& object : objects) {
-            //std::visit(visitor, object);
-            visitor(object);
+            std::visit(visitor, object);
+            //visitor(static_cast<value_type>(object));
         }
     }
 
@@ -160,7 +165,7 @@ struct VariantContainer {
 //    return *this;
 //}
 
-}
+//}
 
 typedef struct VariantContainer<StringData,
                                 char,
@@ -171,7 +176,7 @@ typedef struct VariantContainer<StringData,
                                 unsigned,
                                 unsigned short,
                                 double,
-                                const void*,
+                                void*,
                                 long long,
                                 unsigned long long,
                                 Timestamp,
