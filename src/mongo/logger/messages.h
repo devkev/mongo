@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <cstdint>
 #include <sstream>
 #include <variant>
@@ -71,19 +72,9 @@ struct VariantContainer {
     using value_type = std::variant<T...>;
     std::vector<value_type> objects;
 
-    // Anything which can cast to one of the given T types.
-    VariantContainer<T...>& operator<<(value_type x) {
-        objects.emplace_back(x);
-        return *this;
-    }
-
-    // Anything else gets stringified.
-    // Needed to make some geo stuff work.
     template <typename X>
     VariantContainer<T...>& operator<<(const X& x) {
-        std::ostringstream os;
-        os << x;
-        objects.emplace_back(os.str());
+        objects.emplace_back(x);
         return *this;
     }
 
@@ -102,6 +93,7 @@ struct VariantContainer {
             [&](const Seconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const Minutes& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const Hours& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const boost::posix_time::ptime& elem) { std::ostringstream os; os << elem; out << os.str(); },
         });
     }
 
@@ -139,6 +131,7 @@ using Messages = VariantContainer<StringData,
                                   Seconds,
                                   Minutes,
                                   Hours,
+                                  boost::posix_time::ptime,
                                   bool>;
 
 // FIXME: convert the above typedef into the below sub-struct,

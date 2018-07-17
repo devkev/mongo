@@ -7,6 +7,8 @@
 using std::ostream;
 using std::cout;
 using std::endl;
+#include <sstream>
+using std::ostringstream;
 #include "base/definer.h"
 
 #ifdef OS_WINDOWS
@@ -173,6 +175,8 @@ class S1Interval {
   // intervals is at most the given tolerance.
   bool ApproxEquals(S1Interval const& y, double max_error = 1e-15) const;
 
+  inline std::string toString() const;
+
  private:
   enum ArgsChecked { ARGS_CHECKED };
 
@@ -222,6 +226,12 @@ inline bool S1Interval::operator==(S1Interval const& y) const {
 
 inline ostream& operator<<(ostream& os, S1Interval const& x) {
   return os << "[" << x.lo() << ", " << x.hi() << "]";
+}
+
+inline std::string S1Interval::toString() const {
+    ostringstream os;
+    os << (*this);
+    return os.str();
 }
 
 #endif  // UTIL_GEOMETRY_S1INTERVAL_H_
