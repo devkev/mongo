@@ -279,7 +279,7 @@ StatusWith<std::vector<BSONObj>> MultiIndexBlockImpl::init(const std::vector<BSO
             index.options.getKeysMode = IndexAccessMethod::GetKeysMode::kRelaxConstraints;
         }
 
-        log() << "build index on: " << ns << " properties: " << descriptor->toString();
+        log() << "build index on: " << ns << " properties: " << descriptor->infoObj();
         if (index.bulk)
             log() << "\t building index using bulk method; build may temporarily use up to "
                   << eachIndexBuildMaxMemoryUsageBytes / 1024 / 1024 << " megabytes of RAM";
