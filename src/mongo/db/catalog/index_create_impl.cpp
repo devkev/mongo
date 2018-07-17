@@ -471,7 +471,7 @@ Status MultiIndexBlockImpl::insertAllDocumentsInCollection(std::set<RecordId>* d
     if (!ret.isOK())
         return ret;
 
-    log() << "build index done.  scanned " << n << " total records. " << t.seconds() << " secs";
+    log() << "build index done.  scanned " << n << " total records in " << Seconds(t.seconds());
 
     return Status::OK();
 }
