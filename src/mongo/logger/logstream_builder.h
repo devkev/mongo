@@ -214,23 +214,10 @@ public:
         return *this;
     }
 
-    // FIXME: handle this "properly", rather than "cheating" by using the generic ostringstream function below.
-    //template <typename Period>
-    //LogstreamBuilder& operator<<(const Duration<Period>& d) {
-    //    stream() << d;
-    //    return *this;
-    //}
     template <typename Period>
     LogstreamBuilder& operator<<(const Duration<Period>& x) {
         _handleStr();
-        // FIXME: don't convert to string
-        // There are 6 Durations listed in util/duration.h.
-        // Add them all to Messages, and then the Messages::value_type above should take care of them all.
-        // And then the DetailsEncoder can just convert to string as normal,
-        // whereas the DocumentEncoder can do something like { $duration: 12, units: "ms" } or { $duration: [ 12, "ms" ] } or { $ms: 12 } or { $secs: 60 }, etc.
-        std::ostringstream os;
-        os << x;
-        (*this) << os.str();
+        stream() << x;
         return *this;
     }
 

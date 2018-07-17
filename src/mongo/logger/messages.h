@@ -93,6 +93,15 @@ struct VariantContainer {
             // Do better than this.
             [&](const unsigned long& elem) { out << static_cast<long>(elem); },
             [&](const unsigned long long& elem) { out << static_cast<long long>(elem); },
+            // Pity, if this was a real object with overloaded operator() then it would be easy to have a template function for Duration<Period>.  Meh.
+            // Do better than just stringifying.
+            // eg. something like { $duration: 12, units: "ms" } or { $duration: [ 12, "ms" ] } or { $ms: 12 } or { $secs: 60 }, etc.
+            [&](const Nanoseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Microseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Milliseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Seconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Minutes& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Hours& elem) { std::ostringstream os; os << elem; out << os.str(); },
         });
     }
 
@@ -124,6 +133,12 @@ using Messages = VariantContainer<StringData,
                                   long long,
                                   unsigned long long,
                                   Timestamp,
+                                  Nanoseconds,
+                                  Microseconds,
+                                  Milliseconds,
+                                  Seconds,
+                                  Minutes,
+                                  Hours,
                                   bool>;
 
 // FIXME: convert the above typedef into the below sub-struct,
