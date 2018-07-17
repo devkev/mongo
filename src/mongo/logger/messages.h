@@ -90,7 +90,12 @@ struct VariantContainer {
             [&](const Nanoseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const Microseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const Milliseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
-            [&](const Seconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Seconds& elem) {
+                BSONObjBuilder bob;
+                bob << "$duration" << elem.count();
+                bob << "$units" << "s";
+                out << bob.obj();
+            },
             [&](const Minutes& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const Hours& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const boost::posix_time::ptime& elem) { std::ostringstream os; os << elem; out << os.str(); },
