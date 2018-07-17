@@ -123,75 +123,93 @@ public:
     }
 
     LogstreamBuilder& operator<<(const char* x) {
-        stream() << x;
+        _str += x;
+        _strUsed = true;
         return *this;
     }
     LogstreamBuilder& operator<<(const std::string& x) {
-        stream() << x;
+        _str += x;
+        _strUsed = true;
         return *this;
     }
     LogstreamBuilder& operator<<(StringData x) {
-        stream() << x;
+        _str += x.toString();  // blah, causes a copy
+        _strUsed = true;
         return *this;
     }
     LogstreamBuilder& operator<<(char* x) {
-        stream() << x;
+        _str += x;
+        _strUsed = true;
         return *this;
     }
     LogstreamBuilder& operator<<(char x) {
-        stream() << x;
+        _str += x;
+        _strUsed = true;
         return *this;
     }
     LogstreamBuilder& operator<<(int x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(ExitCode x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned short x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(double x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(void* x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(const void* x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(long long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned long long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(bool x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
 
     LogstreamBuilder& operator<<(const Messages::value_type& x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
@@ -204,6 +222,7 @@ public:
     //}
     template <typename Period>
     LogstreamBuilder& operator<<(const Duration<Period>& x) {
+        _handleStr();
         // FIXME: don't convert to string
         // There are 6 Durations listed in util/duration.h.
         // Add them all to Messages, and then the Messages::value_type above should take care of them all.
@@ -216,26 +235,38 @@ public:
     }
 
     LogstreamBuilder& operator<<(BSONType t) {
+        _handleStr();
         stream() << typeName(t);
         return *this;
     }
 
     LogstreamBuilder& operator<<(ErrorCodes::Error ec) {
+        _handleStr();
         stream() << ErrorCodes::errorString(ec);
         return *this;
     }
 
     template <typename T>
     LogstreamBuilder& operator<<(const T& x) {
+        _handleStr();
         stream() << x.toString();
         return *this;
     }
 
+    // Hmmmmm.
+    // This is used in a bunch of places (and not just for std::endl).
+    // rgl -w 'std::((no)?(boolalpha|showbase|showpoint|skipws|uppercase|unitbuf|emit_on_flush)|internal|left|right|dec|hex|oct|fixed|scientific|hexfloat|defaultfloat|ends|flush|endl|flush_emit|resetiosflags|setiosflags|setbase|setfill|setprecision|setw|get_money|put_money|get_time|put_time|quoted)'
+    // Probably we can add it to the list of types in Messages, and actually store them properly.
+    // Not sure what's happening to them now - auto-cast to void* (I thought that never happened automatically)?
+    // Anyway, if they are stored properly, then BSONArray visitation can just ignore them,
+    // while String visitation can just apply them as normal (and they will take effect, as normal).
     LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        _handleStr();
         stream() << manip;
         return *this;
     }
     LogstreamBuilder& operator<<(std::ios_base& (*manip)(std::ios_base&)) {
+        _handleStr();
         stream() << manip;
         return *this;
     }
@@ -245,7 +276,10 @@ public:
         if (optional) {
             (*this << *optional);
         } else {
-            (*this << "(nothing)");
+            // Don't want this to be subject to string coalescence.
+            //(*this << "(nothing)");
+            _handleStr();
+            stream() << "(nothing)";
         }
         return *this;
     }
@@ -268,6 +302,18 @@ private:
     Tee* _tee;
     bool _isTruncatable = true;
     bool _shouldCache;
+
+    std::string _str;
+    bool _strUsed = false;
+
+    void _handleStr() {
+        if (_strUsed) {
+            stream() << _str;
+            _str.clear();
+            _strUsed = false;
+        }
+    }
+
 };
 
 

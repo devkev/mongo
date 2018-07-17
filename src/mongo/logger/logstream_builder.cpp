@@ -93,6 +93,7 @@ LogstreamBuilder::LogstreamBuilder(logger::MessageLogDomain* domain,
 }
 
 LogstreamBuilder::~LogstreamBuilder() {
+    _handleStr();
     if (_os) {
         MessageEventEphemeral message(
             Date_t::now(), _severity, _component, _contextName, _baseMessage, stream());
@@ -100,6 +101,11 @@ LogstreamBuilder::~LogstreamBuilder() {
         _domain->append(message).transitional_ignore();
         if (_tee) {
             std::ostringstream os;
+            // FIXME: should Tees always use Plain format?
+            // Probably each Tee should be given its own encoder?
+            // That way each could have its own default.
+            // The only other alternative is to use an encoder from _domain - but they are buried inside its Appenders.  Which one is most appropriate?
+            // Besides, I like the idea of startupWarnings still always being Plain, even if the server logs are JSON/BSON.
             logger::MessageEventDetailsEncoder teeEncoder;
             teeEncoder.encode(message, os);
             _tee->write(os.str());
