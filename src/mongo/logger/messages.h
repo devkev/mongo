@@ -84,20 +84,15 @@ struct VariantContainer {
             // Do better than this.
             [&](const unsigned long& elem) { out << static_cast<long>(elem); },
             [&](const unsigned long long& elem) { out << static_cast<long long>(elem); },
-            // Pity, if this was a real object with overloaded operator() then it would be easy to have a template function for Duration<Period>.  Meh.
+            // Pity, if this was a real object with overloaded operator() then it would be easier to have a single template function for Duration<Period>.  Meh.
             // Do better than just stringifying.
             // eg. something like { $duration: 12, units: "ms" } or { $duration: [ 12, "ms" ] } or { $ms: 12 } or { $secs: 60 }, etc.
-            [&](const Nanoseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
-            [&](const Microseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
-            [&](const Milliseconds& elem) { std::ostringstream os; os << elem; out << os.str(); },
-            [&](const Seconds& elem) {
-                BSONObjBuilder bob;
-                bob << "$duration" << elem.count();
-                bob << "$units" << "s";
-                out << bob.obj();
-            },
-            [&](const Minutes& elem) { std::ostringstream os; os << elem; out << os.str(); },
-            [&](const Hours& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const Nanoseconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "ns"; out << bob.obj(); },
+            [&](const Microseconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "\xce\xbcs"; out << bob.obj(); },
+            [&](const Milliseconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "ms"; out << bob.obj(); },
+            [&](const Seconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "s"; out << bob.obj(); },
+            [&](const Minutes& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "min"; out << bob.obj(); },
+            [&](const Hours& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "hr"; out << bob.obj(); },
             [&](const boost::posix_time::ptime& elem) { std::ostringstream os; os << elem; out << os.str(); },
         });
     }
