@@ -32,20 +32,8 @@
 
 #include "mongo/db/opdebug_extra.h"
 
-//#include "mongo/base/disallow_copying.h"
-//#include "mongo/bson/mutable/document.h"
 #include "mongo/db/client.h"
-//#include "mongo/db/commands.h"
-//#include "mongo/db/commands/server_status_metric.h"
-#include "mongo/db/concurrency/locker.h"
-//#include "mongo/db/json.h"
-//#include "mongo/db/query/getmore_request.h"
-#include "mongo/db/query/plan_summary_stats.h"
-//#include "mongo/rpc/metadata/client_metadata.h"
-//#include "mongo/rpc/metadata/client_metadata_ismaster.h"
-//#include "mongo/util/log.h"
-//#include "mongo/util/net/socket_utils.h"
-//#include "mongo/util/stringutils.h"
+//#include "mongo/db/query/plan_summary_stats.h"
 
 namespace mongo {
 

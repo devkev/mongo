@@ -29,21 +29,13 @@
 
 #pragma once
 
-//#include "mongo/base/disallow_copying.h"
-//#include "mongo/db/commands.h"
-//#include "mongo/db/cursor_id.h"
-//#include "mongo/db/operation_context.h"
-//#include "mongo/db/server_options.h"
-//#include "mongo/platform/atomic_word.h"
-//#include "mongo/util/progress_meter.h"
-//#include "mongo/util/time_support.h"
+#include "mongo/db/concurrency/lock_stats.h"
 
 namespace mongo {
 
 class OpDebug;
 class Client;
 class CurOp;
-class SingleThreadedLockStats;
 
 class OpDebugExtra {
 public:
