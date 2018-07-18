@@ -195,6 +195,16 @@ public:
         stream() << x;
         return *this;
     }
+    LogstreamBuilder& operator<<(const BSONObj& x) {
+        _handleStr();
+        stream() << x;
+        return *this;
+    }
+    LogstreamBuilder& operator<<(const BSONElement& x) {
+        _handleStr();
+        stream() << x;
+        return *this;
+    }
 
     LogstreamBuilder& operator<<(const boost::posix_time::ptime& x) {
         _handleStr();
@@ -225,6 +235,8 @@ public:
     LogstreamBuilder& operator<<(const T& x) {
         _handleStr();
         stream() << x.toString();
+        // Would be good to convert the canonical stringifier from member Foo::toString() to friend operator<<(ostream&, const Foo&)
+        //stream() << (str::stream() << x);
         return *this;
     }
 
