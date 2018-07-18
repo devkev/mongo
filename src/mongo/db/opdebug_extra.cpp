@@ -33,6 +33,7 @@
 #include "mongo/db/opdebug_extra.h"
 
 #include "mongo/db/client.h"
+#include "mongo/db/curop.h"
 //#include "mongo/db/query/plan_summary_stats.h"
 
 namespace mongo {

@@ -36,6 +36,7 @@
 #include "mongo/base/string_data.h"
 #include "mongo/bson/bsonobjbuilder.h"
 #include "mongo/bson/timestamp.h"
+#include "mongo/db/opdebug_extra.h"
 #include "mongo/util/exit_code.h"
 #include "mongo/util/time_support.h"
 
@@ -94,6 +95,7 @@ struct VariantContainer {
             [&](const Minutes& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "min"; out << bob.obj(); },
             [&](const Hours& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "hr"; out << bob.obj(); },
             [&](const boost::posix_time::ptime& elem) { std::ostringstream os; os << elem; out << os.str(); },
+            [&](const OpDebugExtra& elem) { BSONObjBuilder bob; elem.append(bob); out << bob.obj(); },
         });
     }
 
@@ -101,6 +103,7 @@ struct VariantContainer {
         visit(overloaded {
             [&](const auto& elem) { out << elem; },
             [&](const Timestamp& elem) { out << elem.toString(); },
+            [&](const OpDebugExtra& elem) { out << elem.report(); },
         });
     }
 
@@ -134,6 +137,7 @@ using Messages = VariantContainer<StringData,
                                   boost::posix_time::ptime,
                                   BSONObj,
                                   BSONElement,
+                                  OpDebugExtra,
                                   bool>;
 
 // FIXME: convert the above typedef into the below sub-struct,

@@ -218,6 +218,12 @@ public:
         return *this;
     }
 
+    LogstreamBuilder& operator<<(const OpDebugExtra& x) {
+        _handleStr();
+        stream() << x;
+        return *this;
+    }
+
     LogstreamBuilder& operator<<(const Messages::value_type& x) {
         _handleStr();
         stream() << x;

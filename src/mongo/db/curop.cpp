@@ -362,9 +362,8 @@ bool CurOp::completeAndLogOperation(OperationContext* opCtx,
 
     if (shouldLogOp || (shouldSample && _debug.executionTimeMicros > slowMs * 1000LL)) {
         const auto lockerInfo = opCtx->lockState()->getLockerInfo();
-        BSONObjBuilder bob;
-        _debug.appendForLog(client, *this, (lockerInfo ? &lockerInfo->stats : nullptr), bob);
-        log(component) << bob.obj();
+        // This thing is basically just a closure around OpDebug, so that we can run results()/appendForLog() later on.
+        log(component) << OpDebugExtra(_debug, client, *this, (lockerInfo ? &lockerInfo->stats : nullptr));
     }
 
     // Return 'true' if this operation should also be added to the profiler.
