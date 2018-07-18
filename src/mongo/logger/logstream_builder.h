@@ -265,12 +265,12 @@ public:
     // while String visitation can just apply them as normal (and they will take effect, as normal).
     LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
         _handleStr();
-        stream() << manip;
+        //stream() << manip;
         return *this;
     }
     LogstreamBuilder& operator<<(std::ios_base& (*manip)(std::ios_base&)) {
         _handleStr();
-        stream() << manip;
+        //stream() << manip;
         return *this;
     }
 
