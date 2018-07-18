@@ -362,7 +362,9 @@ bool CurOp::completeAndLogOperation(OperationContext* opCtx,
 
     if (shouldLogOp || (shouldSample && _debug.executionTimeMicros > slowMs * 1000LL)) {
         const auto lockerInfo = opCtx->lockState()->getLockerInfo();
-        log(component) << _debug.report(client, *this, (lockerInfo ? &lockerInfo->stats : nullptr));
+        BSONObjBuilder bob;
+        _debug.appendForLog(client, *this, (lockerInfo ? &lockerInfo->stats : nullptr), bob);
+        log(component) << bob.obj();
     }
 
     // Return 'true' if this operation should also be added to the profiler.
@@ -657,6 +659,87 @@ void OpDebug::append(const CurOp& curop,
     {
         BSONObjBuilder locks(b.subobjStart("locks"));
         lockStats.report(&locks);
+    }
+
+    if (!errInfo.isOK()) {
+        b.appendNumber("ok", 0.0);
+        if (!errInfo.reason().empty()) {
+            b.append("errMsg", errInfo.reason());
+        }
+        b.append("errName", ErrorCodes::errorString(errInfo.code()));
+        b.append("errCode", errInfo.code());
+    }
+
+    OPDEBUG_APPEND_NUMBER(responseLength);
+    if (iscommand) {
+        b.append("protocol", getProtoString(networkOp));
+    }
+    b.appendIntOrLL("millis", executionTimeMicros / 1000);
+
+    if (!curop.getPlanSummary().empty()) {
+        b.append("planSummary", curop.getPlanSummary());
+    }
+
+    if (!execStats.isEmpty()) {
+        b.append("execStats", execStats);
+    }
+}
+
+void OpDebug::appendForLog(Client* client,
+                  const CurOp& curop,
+                  const SingleThreadedLockStats* lockStats,
+                  BSONObjBuilder& b) const {
+    const size_t maxElementSize = 50 * 1024;
+
+    b.append("op", logicalOpToString(logicalOp));
+
+    NamespaceString nss = NamespaceString(curop.getNS());
+    b.append("ns", nss.ns());
+
+    const auto& clientMetadata = ClientMetadataIsMasterState::get(client).getClientMetadata();
+    if (clientMetadata) {
+        auto appName = clientMetadata.get().getApplicationName();
+        if (!appName.empty()) {
+            b.append("appName", appName);
+        }
+    }
+
+    appendAsObjOrString("command", curop.opDescription(), maxElementSize, &b);
+
+    auto originatingCommand = curop.originatingCommand();
+    if (!originatingCommand.isEmpty()) {
+        appendAsObjOrString("originatingCommand", originatingCommand, maxElementSize, &b);
+    }
+
+    OPDEBUG_APPEND_NUMBER(nShards);
+    OPDEBUG_APPEND_NUMBER(cursorid);
+    OPDEBUG_APPEND_BOOL(exhaust);
+
+    OPDEBUG_APPEND_OPTIONAL("keysExamined", additiveMetrics.keysExamined);
+    OPDEBUG_APPEND_OPTIONAL("docsExamined", additiveMetrics.docsExamined);
+    OPDEBUG_APPEND_BOOL(hasSortStage);
+    OPDEBUG_APPEND_BOOL(fromMultiPlanner);
+    OPDEBUG_APPEND_BOOL(replanned);
+    OPDEBUG_APPEND_OPTIONAL("nMatched", additiveMetrics.nMatched);
+    OPDEBUG_APPEND_OPTIONAL("nModified", additiveMetrics.nModified);
+    OPDEBUG_APPEND_OPTIONAL("ninserted", additiveMetrics.ninserted);
+    OPDEBUG_APPEND_OPTIONAL("ndeleted", additiveMetrics.ndeleted);
+    OPDEBUG_APPEND_BOOL(fastmodinsert);
+    OPDEBUG_APPEND_BOOL(upsert);
+    OPDEBUG_APPEND_BOOL(cursorExhausted);
+
+    OPDEBUG_APPEND_OPTIONAL("nmoved", additiveMetrics.nmoved);
+    OPDEBUG_APPEND_OPTIONAL("keysInserted", additiveMetrics.keysInserted);
+    OPDEBUG_APPEND_OPTIONAL("keysDeleted", additiveMetrics.keysDeleted);
+    OPDEBUG_APPEND_OPTIONAL("prepareReadConflicts", additiveMetrics.prepareReadConflicts);
+    OPDEBUG_APPEND_OPTIONAL("writeConflicts", additiveMetrics.writeConflicts);
+
+    b.appendNumber("numYield", curop.numYields());
+    OPDEBUG_APPEND_NUMBER(nreturned);
+
+    if (lockStats) {
+        BSONObjBuilder locks(b.subobjStart("locks"));
+        lockStats->report(&locks);
     }
 
     if (!errInfo.isOK()) {

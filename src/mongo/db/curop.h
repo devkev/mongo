@@ -135,6 +135,11 @@ public:
                 const SingleThreadedLockStats& lockStats,
                 BSONObjBuilder& builder) const;
 
+    void appendForLog(Client* client,
+                      const CurOp& curop,
+                      const SingleThreadedLockStats* lockStats,
+                      BSONObjBuilder& builder) const;
+
     /**
      * Copies relevant plan summary metrics to this OpDebug instance.
      */
