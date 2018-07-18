@@ -132,6 +132,8 @@ using Messages = VariantContainer<StringData,
                                   Minutes,
                                   Hours,
                                   boost::posix_time::ptime,
+                                  BSONObj,
+                                  BSONElement,
                                   bool>;
 
 // FIXME: convert the above typedef into the below sub-struct,

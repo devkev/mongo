@@ -207,6 +207,16 @@ public:
         stream() << x;
         return *this;
     }
+    LogstreamBuilder& operator<<(const BSONObj& x) {
+        _handleStr();
+        stream() << x;
+        return *this;
+    }
+    LogstreamBuilder& operator<<(const BSONElement& x) {
+        _handleStr();
+        stream() << x;
+        return *this;
+    }
 
     LogstreamBuilder& operator<<(const Messages::value_type& x) {
         _handleStr();
