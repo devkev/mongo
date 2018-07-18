@@ -766,6 +766,15 @@ void OpDebug::appendForLog(Client* client,
     }
 }
 
+std::string OpDebugExtra::report() const {
+    return _opDebug.report(_client, _curOp, _lockStats);
+}
+
+void OpDebugExtra::append(BSONObjBuilder& bob) const {
+    _opDebug.appendForLog(_client, _curOp, _lockStats, bob);
+}
+
+
 void OpDebug::setPlanSummaryMetrics(const PlanSummaryStats& planSummaryStats) {
     additiveMetrics.keysExamined = planSummaryStats.totalKeysExamined;
     additiveMetrics.docsExamined = planSummaryStats.totalDocsExamined;

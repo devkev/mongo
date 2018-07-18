@@ -193,6 +193,21 @@ public:
     AdditiveMetrics additiveMetrics;
 };
 
+class OpDebugExtra {
+public:
+    OpDebugExtra(const OpDebug& opDebug, Client* client, const CurOp& curOp, const SingleThreadedLockStats* lockStats) : _opDebug(opDebug), _client(client), _curOp(curOp), _lockStats(lockStats) {}
+
+    std::string report() const;
+    void append(BSONObjBuilder&) const;
+
+private:
+    const OpDebug& _opDebug;
+    Client* _client;
+    const CurOp& _curOp;
+    const SingleThreadedLockStats* _lockStats;
+};
+
+
 /**
  * Container for data used to report information about an OperationContext.
  *
