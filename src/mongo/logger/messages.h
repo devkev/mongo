@@ -81,29 +81,29 @@ struct VariantContainer {
 
     void toBSONArray(BSONArrayBuilder& out) const {
         visit(overloaded {
-            [&](const auto& elem) { out << elem; },
+            [&](const auto& x) { out << x; },
             // Do better than this.
-            [&](const unsigned long& elem) { out << static_cast<long>(elem); },
-            [&](const unsigned long long& elem) { out << static_cast<long long>(elem); },
+            [&](const unsigned long& x) { out << static_cast<long>(x); },
+            [&](const unsigned long long& x) { out << static_cast<long long>(x); },
             // Pity, if this was a real object with overloaded operator() then it would be easier to have a single template function for Duration<Period>.  Meh.
             // Do better than just stringifying.
             // eg. something like { $duration: 12, units: "ms" } or { $duration: [ 12, "ms" ] } or { $ms: 12 } or { $secs: 60 }, etc.
-            [&](const Nanoseconds& elem) { BSON("$duration" << elem.count() << "$units" << "ns"); },
-            [&](const Microseconds& elem) { BSON("$duration" << elem.count() << "$units" << "\xce\xbcs"); },
-            [&](const Milliseconds& elem) { BSON("$duration" << elem.count() << "$units" << "ms"); },
-            [&](const Seconds& elem) { BSON("$duration" << elem.count() << "$units" << "s"); },
-            [&](const Minutes& elem) { BSON("$duration" << elem.count() << "$units" << "min"); },
-            [&](const Hours& elem) { BSON("$duration" << elem.count() << "$units" << "hr"); },
-            [&](const boost::posix_time::ptime& elem) { std::ostringstream os; os << elem; out << os.str(); },
-            [&](const OpDebugExtra& elem) { BSONObjBuilder bob; elem.append(bob); out << bob.obj(); },
+            [&](const Nanoseconds& x) { BSON("$duration" << x.count() << "$units" << "ns"); },
+            [&](const Microseconds& x) { BSON("$duration" << x.count() << "$units" << "\xce\xbcs"); },
+            [&](const Milliseconds& x) { BSON("$duration" << x.count() << "$units" << "ms"); },
+            [&](const Seconds& x) { BSON("$duration" << x.count() << "$units" << "s"); },
+            [&](const Minutes& x) { BSON("$duration" << x.count() << "$units" << "min"); },
+            [&](const Hours& x) { BSON("$duration" << x.count() << "$units" << "hr"); },
+            [&](const boost::posix_time::ptime& x) { std::ostringstream os; os << x; out << os.str(); },
+            [&](const OpDebugExtra& x) { BSONObjBuilder bob; x.append(bob); out << bob.obj(); },
         });
     }
 
     void toString(std::ostream& out) const {
         visit(overloaded {
-            [&](const auto& elem) { out << elem; },
-            [&](const Timestamp& elem) { out << elem.toString(); },
-            [&](const OpDebugExtra& elem) { out << elem.report(); },
+            [&](const auto& x) { out << x; },
+            [&](const Timestamp& x) { out << x.toString(); },
+            [&](const OpDebugExtra& x) { out << x.report(); },
         });
     }
 
