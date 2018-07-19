@@ -88,12 +88,12 @@ struct VariantContainer {
             // Pity, if this was a real object with overloaded operator() then it would be easier to have a single template function for Duration<Period>.  Meh.
             // Do better than just stringifying.
             // eg. something like { $duration: 12, units: "ms" } or { $duration: [ 12, "ms" ] } or { $ms: 12 } or { $secs: 60 }, etc.
-            [&](const Nanoseconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "ns"; out << bob.obj(); },
-            [&](const Microseconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "\xce\xbcs"; out << bob.obj(); },
-            [&](const Milliseconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "ms"; out << bob.obj(); },
-            [&](const Seconds& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "s"; out << bob.obj(); },
-            [&](const Minutes& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "min"; out << bob.obj(); },
-            [&](const Hours& elem) { BSONObjBuilder bob; bob << "$duration" << elem.count(); bob << "$units" << "hr"; out << bob.obj(); },
+            [&](const Nanoseconds& elem) { BSON("$duration" << elem.count() << "$units" << "ns"); },
+            [&](const Microseconds& elem) { BSON("$duration" << elem.count() << "$units" << "\xce\xbcs"); },
+            [&](const Milliseconds& elem) { BSON("$duration" << elem.count() << "$units" << "ms"); },
+            [&](const Seconds& elem) { BSON("$duration" << elem.count() << "$units" << "s"); },
+            [&](const Minutes& elem) { BSON("$duration" << elem.count() << "$units" << "min"); },
+            [&](const Hours& elem) { BSON("$duration" << elem.count() << "$units" << "hr"); },
             [&](const boost::posix_time::ptime& elem) { std::ostringstream os; os << elem; out << os.str(); },
             [&](const OpDebugExtra& elem) { BSONObjBuilder bob; elem.append(bob); out << bob.obj(); },
         });
