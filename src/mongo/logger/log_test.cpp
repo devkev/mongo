@@ -48,6 +48,7 @@
 #include "mongo/util/concurrency/thread_name.h"
 #include "mongo/util/log.h"
 #include "mongo/util/mongoutils/str.h"
+#include "mongo/util/uuid.h"
 
 using namespace mongo::logger;
 
@@ -514,11 +515,405 @@ TEST_F(LogTestDetailsEncoder, LogFunctions) {
                       std::string::npos);
 }
 
-TEST_F(LogTestDocumentEncoder, LogFunctions) {
-    log() << "test log line";
+
+TEST_F(LogTestDocumentEncoder, Time) {
+    _logLines.clear();
+    log() << 1;
     ASSERT_EQUALS(1U, _logLines.size());
-    //ASSERT_NOT_EQUALS(_logLines[0].find(str::stream() << " F " << componentDefault.getNameForLog()),
-    //                  std::string::npos);
+    ASSERT_EQUALS(_logLines[0]["t"].type(), Date) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Severity) {
+    logger::globalLogDomain()->setMinimumLoggedSeverity(LogComponent::kDefault,
+                                                        LogSeverity::Debug(2));
+
+    _logLines.clear();
+    LOG(2) << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["s"].str(), "debug") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    LOG(1) << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["s"].str(), "debug") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    log() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["s"].str(), "info") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    warning() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["s"].str(), "warning") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    error() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["s"].str(), "ERROR") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    severe() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["s"].str(), "SEVERE") << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Component) {
+    _logLines.clear();
+    log() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT(_logLines[0]["c"].eoo()) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    log(componentA) << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["c"].str(), componentA.getShortName()) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Context) {
+    _logLines.clear();
+    log() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["ctx"].type(), String) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Base) {
+    logger::globalLogDomain()->setMinimumLoggedSeverity(LogComponent::kDefault,
+                                                        LogSeverity::Debug(2));
+
+    _logLines.clear();
+    log() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT(_logLines[0]["base"].eoo()) << _logLines[0].jsonString(Strict);
+
+    // FIXME: broken
+    //_logLines.clear();
+    //LOG(LabeledLevel("this is the base", 0)) << 1;
+    //ASSERT_EQUALS(1U, _logLines.size());
+    //ASSERT_EQUALS(_logLines[0]["base"].str(), "this is the base") << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Msg) {
+    _logLines.clear();
+    log();
+    ASSERT_EQUALS(0U, _logLines.size());
+
+    _logLines.clear();
+    log() << startupWarningsLog;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 0) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    log() << 1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Number(), 1) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    log() << 1 << 2 << 3;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 3) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Number(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["1"].Number(), 2) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["2"].Number(), 3) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, String) {
+    _logLines.clear();
+    log() << "This is logged";
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "This is logged") << _logLines[0].jsonString(Strict);
+
+    char s[] = "This is logged";
+
+    _logLines.clear();
+    log() << s;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "This is logged") << _logLines[0].jsonString(Strict);
+
+    std::string str(s);
+
+    _logLines.clear();
+    log() << str;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "This is logged") << _logLines[0].jsonString(Strict);
+
+    StringData sd1(s);
+
+    _logLines.clear();
+    log() << sd1;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "This is logged") << _logLines[0].jsonString(Strict);
+
+    StringData sd2(str);
+
+    _logLines.clear();
+    log() << sd2;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "This is logged") << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, StringCoalesce) {
+    _logLines.clear();
+    log() << "This" << " is " << "logged";
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "This is logged") << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Char) {
+    _logLines.clear();
+    log() << 'c';
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "c") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    char x = 'c';
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].str(), "c") << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Int) {
+    _logLines.clear();
+    log() << 1;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), 1) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    int x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), 1) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, ExitCode) {
+    _logLines.clear();
+    log() << EXIT_TEST;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), EXIT_TEST) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    ExitCode x = EXIT_TEST;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), EXIT_TEST) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Long) {
+    _logLines.clear();
+    log() << 1L;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1L) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    long x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1L) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, UnsignedLong) {
+    _logLines.clear();
+    log() << 1UL;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1L) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    unsigned long x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1L) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Unsigned) {
+    _logLines.clear();
+    log() << 1U;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), 1) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    unsigned x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), 1) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, UnsignedShort) {
+    _logLines.clear();
+    log() << static_cast<unsigned short>(1);
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), 1) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    unsigned short x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Int(), 1) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Double) {
+    _logLines.clear();
+    log() << 1.2;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Double(), 1.2) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    double x = 1.2;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Double(), 1.2) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, VoidP) {
+    _logLines.clear();
+    log() << reinterpret_cast<void*>(0x12345678);
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), true) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    log() << reinterpret_cast<void*>(0);
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), false) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    void* x = reinterpret_cast<void*>(0x12345678);
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), true) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    x = reinterpret_cast<void*>(0);
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), false) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, LongLong) {
+    _logLines.clear();
+    log() << 1LL;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1LL) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    long long x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1LL) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, UnsignedLongLong) {
+    _logLines.clear();
+    log() << 1ULL;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1LL) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    unsigned long long x = 1;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Long(), 1LL) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, Bool) {
+    _logLines.clear();
+    log() << true;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), true) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    bool x = true;
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), true) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, BSON) {
+    unsigned char bintype0[] = {0xDE, 0xEA, 0xBE, 0xEF, 0x01};  // Random BinData shorter than UUID
+
+    BSONObj obj = BSON("number0" << 1.1
+               << "string0" << ""
+               << "string1" << "hello"
+               << "object0" << BSONObj()
+               << "object1" << BSON("foo" << 1 << "bar" << 1)
+               << "array0" << BSONArray()
+               << "array0" << BSON_ARRAY("foo" << "bar")
+               << "bindata0" << bintype0
+               << "uuid0" << UUID::gen()
+               // FIXME add the other bindata types
+               << "objectid0" << OID()
+               << "bool0" << true
+               << "bool1" << false
+               << "date0" << Date_t()
+               << "date1" << Date_t::now()
+               << "null0" << BSONNULL
+               // FIXME regex
+               // FIXME code
+               // FIXME code_w_s
+               << "int0" << 1
+               << "int1" << 1L
+               << "timestamp0" << Timestamp()
+               << "timestamp1" << Timestamp(3,4)
+               << "long0" << 1LL
+               << "long0" << Decimal128(1.1)
+               << "minkey0" << MinKey
+               << "maxkey0" << MaxKey
+                 );
+
+    _logLines.clear();
+    log() << obj;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+
+    for (BSONElement elem : obj) {
+        _logLines.clear();
+        log() << elem;
+        ASSERT_EQUALS(1U, _logLines.size());
+        ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+        ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+        ASSERT(elem.binaryEqualValues(_logLines[0]["msg"]["0"])) << _logLines[0].jsonString(Strict);
+    }
 }
 
 }  // namespace
