@@ -38,11 +38,11 @@ namespace logger {
  * Most appender implementations write to streams, and Encoders represent the process of
  * encoding events into streams.
  */
-template <typename Event>
+template <typename Event, typename Output = std::ostream>
 class Encoder {
 public:
     virtual ~Encoder() {}
-    virtual std::ostream& encode(const Event& event, std::ostream& os) = 0;
+    virtual Output& encode(const Event& event, Output& os) = 0;
 };
 
 }  // namespace logger

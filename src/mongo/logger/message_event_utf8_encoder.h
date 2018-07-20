@@ -55,11 +55,12 @@ struct LogContext {
 /**
  * Encoder that writes log messages in a document-structured way (eg. JSON, BSON, ...).
  */
-class MessageEventDocumentEncoder : public Encoder<MessageEventEphemeral> {
+class MessageEventDocumentEncoder : public Encoder<MessageEventEphemeral>, Encoder<MessageEventEphemeral, BSONObjBuilder> {
 public:
     MessageEventDocumentEncoder(LogFormat format = LogFormat::JSON);
     virtual ~MessageEventDocumentEncoder();
-    virtual std::ostream& encode(const MessageEventEphemeral& event, std::ostream& os);
+    virtual std::ostream& encode(const MessageEventEphemeral& event, std::ostream& out);
+    virtual BSONObjBuilder& encode(const MessageEventEphemeral& event, BSONObjBuilder& out);
 private:
     LogFormat _format;
 };

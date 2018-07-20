@@ -89,8 +89,36 @@ MessageEventDocumentEncoder::MessageEventDocumentEncoder(LogFormat format)
 
 MessageEventDocumentEncoder::~MessageEventDocumentEncoder() {}
 
+BSONObjBuilder& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
+                                                    BSONObjBuilder& out) {
+    auto date = event.getDate();
+    auto severity = event.getSeverity();
+    LogComponent component = event.getComponent();
+    StringData contextName = event.getContextName();
+    StringData baseMessage = event.getBaseMessage();
+    const Messages& messages = event.getMessages();
+
+    out << "t" << date;
+    out << "s" << severity.toStringData();
+    if (component > LogComponent::kDefault && component < LogComponent::kNumLogComponents) {
+        out << "c" << component.toStringData();
+    }
+    if (!contextName.empty()) {
+        out << "ctx" << contextName;
+    }
+    if (!baseMessage.empty()) {
+        out.append("base", baseMessage);
+    }
+
+    BSONArrayBuilder bab;
+    messages.toBSONArray(bab);
+    out.appendArray("msg", bab.arr());
+
+    return out;
+}
+
 std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
-                                                  std::ostream& os) {
+                                                  std::ostream& out) {
     auto date = event.getDate();
     auto severity = event.getSeverity();
     LogComponent component = event.getComponent();
@@ -99,35 +127,21 @@ std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& e
     const Messages& messages = event.getMessages();
 
     BSONObjBuilder bob;
-    bob << "t" << date;
-    bob << "s" << severity.toStringData();
-    if (component > LogComponent::kDefault && component < LogComponent::kNumLogComponents) {
-        bob << "c" << component.toStringData();
-    }
-    if (!contextName.empty()) {
-        bob << "ctx" << contextName;
-    }
-    if (!baseMessage.empty()) {
-        bob.append("base", baseMessage);
-    }
-
-    BSONArrayBuilder bab;
-    messages.toBSONArray(bab);
-    bob.appendArray("msg", bab.arr());
-
+    encode(event, bob);
     BSONObj obj = bob.obj();
+
     switch (_format) {
         case LogFormat::JSON:
-            os << obj.jsonString(Strict, 0, false) << kEOL;
+            out << obj.jsonString(Strict, 0, false) << kEOL;
             break;
         case LogFormat::BSON:
-            os.write(obj.objdata(), obj.objsize());
+            out.write(obj.objdata(), obj.objsize());
             break;
         default:
             MONGO_UNREACHABLE;
     }
 
-    return os;
+    return out;
 }
 
 MessageEventDetailsEncoder::~MessageEventDetailsEncoder() {}
