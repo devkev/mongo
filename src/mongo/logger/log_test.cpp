@@ -56,6 +56,7 @@ namespace {
 
 typedef LogTest<MessageEventDetailsEncoder> LogTestDetailsEncoder;
 typedef LogTest<MessageEventUnadornedEncoder> LogTestUnadornedEncoder;
+typedef LogTest<MessageEventDocumentEncoder> LogTestDocumentEncoder;
 
 TEST_F(LogTestUnadornedEncoder, logContext) {
     logContext("WHA!");
@@ -511,6 +512,13 @@ TEST_F(LogTestDetailsEncoder, LogFunctions) {
     ASSERT_EQUALS(1U, _logLines.size());
     ASSERT_NOT_EQUALS(_logLines[0].find(str::stream() << " I " << componentA.getNameForLog()),
                       std::string::npos);
+}
+
+TEST_F(LogTestDocumentEncoder, LogFunctions) {
+    log() << "test log line";
+    ASSERT_EQUALS(1U, _logLines.size());
+    //ASSERT_NOT_EQUALS(_logLines[0].find(str::stream() << " F " << componentDefault.getNameForLog()),
+    //                  std::string::npos);
 }
 
 }  // namespace
