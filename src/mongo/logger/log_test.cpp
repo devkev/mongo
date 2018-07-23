@@ -1066,5 +1066,32 @@ TEST_F(LogTestDocumentEncoder, iomanip) {
     // FIXME
 }
 
+void logMagic() {
+    double x = 42.3;
+    auto y = [&] () { return 2 * x; };
+
+    log() << LogLambda{
+        [&](std::ostream& out) { out << "Magic(" << x << ", " << y() << ")"; },
+        [&](BSONArrayBuilder& out) { out << BSON("$magic" << x << "$extra" << y()); }
+    };
+}
+
+TEST_F(LogTestDetailsEncoder, Closure) {
+    _logLines.clear();
+    logMagic();
+    ASSERT_NOT_EQUALS(_logLines[0].find("Magic(42.3, 84.6)"), std::string::npos) << _logLines[0];
+}
+
+TEST_F(LogTestDocumentEncoder, Closure) {
+    _logLines.clear();
+    logMagic();
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj().nFields(), 2) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$magic"].Double(), 42.3) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$extra"].Double(), 84.6) << _logLines[0].jsonString(Strict);
+}
+
 }  // namespace
 }  // namespace mongo
