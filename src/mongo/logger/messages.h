@@ -112,6 +112,25 @@ struct VariantContainer {
     }
 };
 
+struct LogLambda {
+    LogLambda(std::function<void(std::ostream&)> ostreamer, std::function<void(BSONArrayBuilder&)> baber)
+        : _ostreamer(ostreamer), _baber(baber)
+        {}
+
+    std::function<void(std::ostream&)> _ostreamer;
+    std::function<void(BSONArrayBuilder&)> _baber;
+
+    friend std::ostream& operator<<(std::ostream& out, const LogLambda& ll) {
+        ll._ostreamer(out);
+        return out;
+    }
+
+    friend BSONArrayBuilder& operator<<(BSONArrayBuilder& out, const LogLambda& ll) {
+        ll._baber(out);
+        return out;
+    }
+};
+
 // For the non-POD types below, write a template class Unowned<Foo>, which
 // stores a const pointer/reference to Foo but casts to a const Foo& so it
 // looks and smells like a Foo.
@@ -147,6 +166,7 @@ using Messages = VariantContainer<StringData,
                                   BSONObj,
                                   BSONElement,
                                   OpDebugExtra,
+                                  LogLambda,
                                   bool>;
 
 }  // namespace logger

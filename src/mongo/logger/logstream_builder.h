@@ -237,6 +237,12 @@ public:
         return *this;
     }
 
+    LogstreamBuilder& operator<<(const LogLambda& x) {
+        _handleStr();
+        stream() << x;
+        return *this;
+    }
+
     template <typename T>
     LogstreamBuilder& operator<<(const T& x) {
         _handleStr();
