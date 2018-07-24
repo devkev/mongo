@@ -56,6 +56,7 @@ namespace {
 
 typedef LogTest<MessageEventDetailsEncoder> LogTestDetailsEncoder;
 typedef LogTest<MessageEventUnadornedEncoder> LogTestUnadornedEncoder;
+typedef LogTestDocument<MessageEventDocumentEncoder> LogTestDocumentEncoder;
 
 TEST_F(LogTestUnadornedEncoder, logContext) {
     logContext("WHA!");

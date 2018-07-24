@@ -223,6 +223,10 @@ public:
 private:
     stdx::mutex _mutex;
     bool _enabled = false;
+    // FIXME: use logger::makeUniqueMessageEventEncoder().
+    // So will need this to be a unique_ptr<> instead of a member.
+    // Will also need to beforehand call: invariant(logger::resolveDefaultLogFormat(logger::DEFAULT_LOG_FORMAT_UNITTEST).isOK());
+    // Also it's really about time the encoder was lifted into the parent class (EventAppender) - they all want one, and all should have one, with a suitable default for their context... etc.
     logger::MessageEventDetailsEncoder _encoder;
     std::vector<std::string>* _lines;
 };
