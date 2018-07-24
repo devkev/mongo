@@ -93,6 +93,7 @@ LogstreamBuilder::LogstreamBuilder(logger::MessageLogDomain* domain,
 }
 
 LogstreamBuilder::~LogstreamBuilder() {
+    _handleStr();
     if (_os) {
         MessageEventEphemeral message(
             Date_t::now(), _severity, _component, _contextName, _baseMessage, stream());
