@@ -1545,7 +1545,7 @@ void WiredTigerIndexUnique::_unindexTimestampUnsafe(OperationContext* opCtx,
     }
 
     if (!foundId) {
-        warning().stream() << id << " not found in the index for key " << redact(key);
+        warning() << id << " not found in the index for key " << redact(key);
         return;  // nothing to do
     }
 

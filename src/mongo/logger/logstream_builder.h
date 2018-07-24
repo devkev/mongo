@@ -115,12 +115,6 @@ public:
         return *this;
     }
 
-    Messages& stream() {
-        if (!_os)
-            makeStream();
-        return *_os;
-    }
-
     LogstreamBuilder& operator<<(const char* x) {
         stream() << x;
         return *this;
@@ -190,6 +184,11 @@ public:
         return *this;
     }
 
+    LogstreamBuilder& operator<<(const boost::posix_time::ptime& x) {
+        stream() << x;
+        return *this;
+    }
+
     template <typename Period>
     LogstreamBuilder& operator<<(const Duration<Period>& d) {
         stream() << d;
@@ -239,6 +238,12 @@ public:
 
 private:
     void makeStream();
+
+    Messages& stream() {
+        if (!_os)
+            makeStream();
+        return *_os;
+    }
 
     MessageLogDomain* _domain;
     std::string _contextName;

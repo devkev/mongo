@@ -16,6 +16,9 @@ using std::ostream;
 using std::cout;
 using std::endl;
 
+#include <sstream>
+using std::ostringstream;
+
 #include "base/basictypes.h"
 #include "base/logging.h"
 #include "util/math/vector2-inl.h"
@@ -166,6 +169,8 @@ class R1Interval {
     return (lo() == y.lo() && hi() == y.hi()) || (is_empty() && y.is_empty());
   }
 
+  inline std::string toString() const;
+
   // Return true if length of the symmetric difference between the two
   // intervals is at most the given tolerance.
   bool ApproxEquals(R1Interval const& y, double max_error = 1e-15) const {
@@ -181,6 +186,12 @@ DECLARE_POD(R1Interval);
 
 inline ostream& operator<<(ostream& os, R1Interval const& x) {
   return os << "[" << x.lo() << ", " << x.hi() << "]";
+}
+
+inline std::string R1Interval::toString() const {
+  ostringstream os;
+  os << (*this);
+  return os.str();
 }
 
 #endif  // UTIL_GEOMETRY_R1INTERVAL_H_

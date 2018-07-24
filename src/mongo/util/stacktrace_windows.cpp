@@ -236,12 +236,21 @@ static const int maxBackTraceFrames = 100;
  *
  * @param os    ostream& to receive printed stack backtrace
  */
-void printStackTrace(std::ostream& os) {
+template <class Outputter>
+void _printStackTrace(Outputter& os) {
     CONTEXT context;
     memset(&context, 0, sizeof(context));
     context.ContextFlags = CONTEXT_CONTROL;
     RtlCaptureContext(&context);
     printWindowsStackTrace(context, os);
+}
+
+void printStackTrace(logger::LogstreamBuilder& os) {
+    _printStackTrace(os);
+}
+
+void printStackTrace(std::ostream& os) {
+    _printStackTrace(os);
 }
 
 
@@ -251,7 +260,8 @@ void printStackTrace(std::ostream& os) {
  * @param context   CONTEXT record for stack trace
  * @param os        ostream& to receive printed stack backtrace
  */
-void printWindowsStackTrace(CONTEXT& context, std::ostream& os) {
+template <class Outputter>
+void _printWindowsStackTrace(CONTEXT& context, Outputter& os) {
     auto& symbolHandler = SymbolHandler::instance();
     stdx::lock_guard<SymbolHandler> lk(symbolHandler);
 
@@ -342,6 +352,15 @@ void printWindowsStackTrace(CONTEXT& context, std::ostream& os) {
         os << traceList[i].symbolAndOffset << '\n';
     }
 }
+
+void printWindowsStackTrace(CONTEXT& context, logger::LogstreamBuilder& os) {
+    _printWindowsStackTrace(context, os);
+}
+
+void printWindowsStackTrace(CONTEXT& context, std::ostream& os) {
+    _printWindowsStackTrace(context, os);
+}
+
 
 // Print error message from C runtime, then fassert
 int crtDebugCallback(int, char* originalMessage, int*) {

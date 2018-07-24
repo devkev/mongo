@@ -33,6 +33,7 @@
 #include <climits>
 #include <cstdint>
 #include <ostream>
+#include <sstream>
 
 #include "mongo/bson/util/builder.h"
 #include "mongo/logger/logstream_builder.h"
@@ -79,6 +80,8 @@ public:
     int64_t repr() const {
         return _repr;
     }
+
+    inline std::string toString() const;
 
     /**
      * Normal RecordIds are the only ones valid for representing Records. All RecordIds outside
@@ -159,8 +162,10 @@ inline std::ostream& operator<<(std::ostream& stream, const boost::optional<Reco
     return stream << "RecordId(" << (id ? id.get().repr() : 0) << ')';
 }
 
-inline logger::LogstreamBuilder& operator<<(logger::LogstreamBuilder& stream, const RecordId& id) {
-    stream.stream() << id;
-    return stream;
+inline std::string RecordId::toString() const {
+    // FIXME: do better than just stringifying
+    std::ostringstream os;
+    os << (*this);
+    return os.str();
 }
 }  // namespace mongo
