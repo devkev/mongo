@@ -228,14 +228,19 @@ public:
         return *this;
     }
 
+    // Hmmmmm.
+    // These are used in a bunch of places (and not just for std::endl).
+    // rg -w 'std::((no)?(boolalpha|showbase|showpoint|skipws|uppercase|unitbuf|emit_on_flush)|internal|left|right|dec|hex|oct|fixed|scientific|hexfloat|defaultfloat|ends|flush|endl|flush_emit|resetiosflags|setiosflags|setbase|setfill|setprecision|setw|get_money|put_money|get_time|put_time|quoted)'
+    // Probably we can add it to the list of types in Messages, and actually store them properly.
+    // Then BSONArray visitation can just ignore them, while String visitation can just apply them as normal (and they will take effect, as normal).
     LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
         _handleStr();
-        stream() << manip;
+        //stream() << manip;
         return *this;
     }
     LogstreamBuilder& operator<<(std::ios_base& (*manip)(std::ios_base&)) {
         _handleStr();
-        stream() << manip;
+        //stream() << manip;
         return *this;
     }
 
