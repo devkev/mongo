@@ -132,7 +132,8 @@ int backtrace(void** array, int size) {
 }  // namespace
 
 #if defined(MONGO_NO_BACKTRACE)
-void printStackTrace(std::ostream& os) {
+template <class Outputter>
+void _printStackTrace(Outputter& os) {
     os << "This platform does not support printing stacktraces" << std::endl;
 }
 
@@ -160,7 +161,8 @@ void printStackTrace(std::ostream& os) {
  *
  * @param os    ostream& to receive printed stack backtrace
  */
-void printStackTrace(std::ostream& os) {
+template <class Outputter>
+void _printStackTrace(Outputter& os) {
     static const char unknownFileName[] = "???";
     void* addresses[maxBackTraceFrames];
     Dl_info dlinfoForFrames[maxBackTraceFrames];
@@ -244,6 +246,14 @@ void printStackTrace(std::ostream& os) {
 }
 
 #endif
+
+void printStackTrace(logger::LogstreamBuilder& os) {
+    _printStackTrace(os);
+}
+
+void printStackTrace(std::ostream& os) {
+    _printStackTrace(os);
+}
 
 namespace {
 

@@ -331,8 +331,10 @@ void ThreadPool::_consumeTasks() {
         _threads.pop_back();
         return;
     }
-    severe().stream() << "Could not find this thread, with id " << stdx::this_thread::get_id()
-                      << " in pool " << _options.poolName;
+    std::ostringstream os;
+    os << stdx::this_thread::get_id();
+    severe() << "Could not find this thread, with id " << os.str() << " in pool "
+             << _options.poolName;
     fassertFailedNoTrace(28703);
 }
 
