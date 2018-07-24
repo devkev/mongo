@@ -48,19 +48,19 @@ public:
     MessageEventEphemeral(Date_t date,
                           LogSeverity severity,
                           StringData contextName,
-                          StringData message)
-        : MessageEventEphemeral(date, severity, LogComponent::kDefault, contextName, message) {}
+                          StringData baseMessage)
+        : MessageEventEphemeral(date, severity, LogComponent::kDefault, contextName, baseMessage) {}
 
     MessageEventEphemeral(Date_t date,
                           LogSeverity severity,
                           LogComponent component,
                           StringData contextName,
-                          StringData message)
+                          StringData baseMessage)
         : _date(date),
           _severity(severity),
           _component(component),
           _contextName(contextName),
-          _message(message) {}
+          _baseMessage(baseMessage) {}
 
     MessageEventEphemeral& setIsTruncatable(bool value) {
         _isTruncatable = value;
@@ -79,8 +79,8 @@ public:
     StringData getContextName() const {
         return _contextName;
     }
-    StringData getMessage() const {
-        return _message;
+    StringData getBaseMessage() const {
+        return _baseMessage;
     }
     bool isTruncatable() const {
         return _isTruncatable;
@@ -91,7 +91,7 @@ private:
     LogSeverity _severity;
     LogComponent _component;
     StringData _contextName;
-    StringData _message;
+    StringData _baseMessage;
     bool _isTruncatable = true;
 };
 
