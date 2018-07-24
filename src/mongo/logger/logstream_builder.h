@@ -115,7 +115,7 @@ public:
         return *this;
     }
 
-    std::ostream& stream() {
+    Messages& stream() {
         if (!_os)
             makeStream();
         return *_os;
@@ -245,7 +245,7 @@ private:
     LogSeverity _severity;
     LogComponent _component;
     std::string _baseMessage;
-    std::unique_ptr<std::ostringstream> _os;
+    std::unique_ptr<Messages> _os;
     Tee* _tee;
     bool _isTruncatable = true;
     bool _shouldCache;
