@@ -44,7 +44,7 @@ namespace logger {
 // Used for testing logging framework only.
 // TODO(schwerin): Have logger write to a different log from the global log, so that tests can
 // redirect their global log output for examination.
-template <typename MessageEventEncoder>
+template <typename MessageEventEncoder, class Storage = std::string>
 class LogTest : public unittest::Test {
     friend class LogTestAppender;
 
@@ -61,7 +61,7 @@ public:
     }
 
 protected:
-    std::vector<std::string> _logLines;
+    std::vector<Storage> _logLines;
     LogSeverity _severityOld;
 
 private:
@@ -79,6 +79,48 @@ private:
 
     private:
         LogTest* _ltest;
+        MessageEventEncoder _encoder;
+    };
+
+    MessageLogDomain::AppenderHandle _appenderHandle;
+};
+
+// It should be possible to do this as a proper instantiation of LogTest,
+// but getting the machinery just right really isn't worth the considerable effort (for now).
+template <typename MessageEventEncoder, class Storage = BSONObj>
+class LogTestDocument : public unittest::Test {
+    friend class LogTestAppender;
+
+public:
+    LogTestDocument() : _severityOld(globalLogDomain()->getMinimumLogSeverity()) {
+        globalLogDomain()->clearAppenders();
+        _appenderHandle =
+            globalLogDomain()->attachAppender(std::make_unique<LogTestAppender>(this));
+    }
+
+    virtual ~LogTestDocument() {
+        globalLogDomain()->detachAppender(_appenderHandle);
+        globalLogDomain()->setMinimumLoggedSeverity(_severityOld);
+    }
+
+protected:
+    std::vector<Storage> _logLines;
+    LogSeverity _severityOld;
+
+private:
+    class LogTestAppender : public MessageLogDomain::EventAppender {
+    public:
+        explicit LogTestAppender(LogTestDocument* ltest) : _ltest(ltest) {}
+        virtual ~LogTestAppender() {}
+        virtual Status append(const MessageLogDomain::Event& event) {
+            BSONObjBuilder bob;
+            _encoder.encode(event, bob);
+            _ltest->_logLines.push_back(bob.obj());
+            return Status::OK();
+        }
+
+    private:
+        LogTestDocument* _ltest;
         MessageEventEncoder _encoder;
     };
 
