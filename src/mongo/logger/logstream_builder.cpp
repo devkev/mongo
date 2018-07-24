@@ -53,7 +53,7 @@ MONGO_INITIALIZER(LogstreamBuilder)(InitializerContext*) {
     return Status::OK();
 }
 
-thread_local std::unique_ptr<std::ostringstream> threadOstreamCache;
+thread_local std::unique_ptr<logger::Messages> threadOstreamCache;
 
 // During unittests, where we don't use quickExit(), static finalization may destroy the
 // cache before its last use, so mark it as not initialized in that case.
@@ -94,20 +94,22 @@ LogstreamBuilder::LogstreamBuilder(logger::MessageLogDomain* domain,
 
 LogstreamBuilder::~LogstreamBuilder() {
     if (_os) {
-        if (!_baseMessage.empty())
-            _baseMessage.push_back(' ');
-        _baseMessage += _os->str();
         MessageEventEphemeral message(
-            Date_t::now(), _severity, _component, _contextName, _baseMessage);
+            Date_t::now(), _severity, _component, _contextName, _baseMessage, stream());
         message.setIsTruncatable(_isTruncatable);
         _domain->append(message).transitional_ignore();
         if (_tee) {
-            _os->str("");
+            std::ostringstream os;
+            // FIXME: should Tees always use Plain format?
+            // Probably each Tee should be given its own encoder?
+            // That way each could have its own default.
+            // The only other alternative is to use an encoder from _domain - but they are buried inside its Appenders.  Which one is most appropriate?
+            // Besides, I like the idea of startupWarnings still always being Plain, even if the server logs are JSON/BSON.
             logger::MessageEventDetailsEncoder teeEncoder;
-            teeEncoder.encode(message, *_os);
-            _tee->write(_os->str());
+            teeEncoder.encode(message, os);
+            _tee->write(os.str());
         }
-        _os->str("");
+        _os->clear();
         if (_shouldCache && isThreadOstreamCacheInitialized && !threadOstreamCache) {
             threadOstreamCache = std::move(_os);
         }
@@ -125,7 +127,7 @@ void LogstreamBuilder::makeStream() {
         if (_shouldCache && isThreadOstreamCacheInitialized && threadOstreamCache) {
             _os = std::move(threadOstreamCache);
         } else {
-            _os = stdx::make_unique<std::ostringstream>();
+            _os = stdx::make_unique<Messages>();
         }
     }
 }
