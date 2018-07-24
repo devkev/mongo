@@ -48,6 +48,7 @@
 #include "mongo/util/concurrency/thread_name.h"
 #include "mongo/util/log.h"
 #include "mongo/util/mongoutils/str.h"
+#include "mongo/util/uuid.h"
 
 using namespace mongo::logger;
 
@@ -514,6 +515,7 @@ TEST_F(LogTestDetailsEncoder, LogFunctions) {
                       std::string::npos);
 }
 
+
 TEST_F(LogTestDocumentEncoder, Time) {
     _logLines.clear();
     log() << 1;
@@ -863,6 +865,84 @@ TEST_F(LogTestDocumentEncoder, Bool) {
     ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
     ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
     ASSERT_EQUALS(_logLines[0]["msg"]["0"].Bool(), true) << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, BSON) {
+    unsigned char bintype0[] = {0xDE, 0xEA, 0xBE, 0xEF, 0x01};  // Random BinData shorter than UUID
+
+    BSONObj obj = BSON("number0" << 1.1
+               << "string0" << ""
+               << "string1" << "hello"
+               << "object0" << BSONObj()
+               << "object1" << BSON("foo" << 1 << "bar" << 1)
+               << "array0" << BSONArray()
+               << "array0" << BSON_ARRAY("foo" << "bar")
+               << "bindata0" << bintype0
+               << "uuid0" << UUID::gen()
+               // FIXME add the other bindata types
+               << "objectid0" << OID()
+               << "bool0" << true
+               << "bool1" << false
+               << "date0" << Date_t()
+               << "date1" << Date_t::now()
+               << "null0" << BSONNULL
+               // FIXME regex
+               // FIXME code
+               // FIXME code_w_s
+               << "int0" << 1
+               << "int1" << 1L
+               << "timestamp0" << Timestamp()
+               << "timestamp1" << Timestamp(3,4)
+               << "long0" << 1LL
+               << "long0" << Decimal128(1.1)
+               << "minkey0" << MinKey
+               << "maxkey0" << MaxKey
+                 );
+
+    _logLines.clear();
+    log() << obj;
+    ASSERT_EQUALS(1U, _logLines.size());
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+
+    for (BSONElement elem : obj) {
+        _logLines.clear();
+        log() << elem;
+        ASSERT_EQUALS(1U, _logLines.size());
+        ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+        ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+        ASSERT(elem.binaryEqualValues(_logLines[0]["msg"]["0"])) << _logLines[0].jsonString(Strict);
+    }
+}
+
+template <typename Dur>
+void testDuration(std::vector<BSONObj>& _logLines, const std::string& unitStr) {
+    _logLines.clear();
+    log() << Dur(3);
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$duration"].Long(), 3) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$units"].str(), unitStr) << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    Dur x(3);
+    log() << x;
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$duration"].Long(), 3) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$units"].str(), unitStr) << _logLines[0].jsonString(Strict);
+};
+
+TEST_F(LogTestDocumentEncoder, Duration) {
+    testDuration<Nanoseconds>(_logLines, "ns");
+    testDuration<Microseconds>(_logLines, "\xce\xbcs");
+    testDuration<Milliseconds>(_logLines, "ms");
+    testDuration<Seconds>(_logLines, "s");
+    testDuration<Minutes>(_logLines, "min");
+    testDuration<Hours>(_logLines, "hr");
 }
 
 TEST_F(LogTestDocumentEncoder, Timestamp) {
