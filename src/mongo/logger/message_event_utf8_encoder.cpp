@@ -89,38 +89,45 @@ MessageEventDocumentEncoder::MessageEventDocumentEncoder(LogFormat format)
 
 MessageEventDocumentEncoder::~MessageEventDocumentEncoder() {}
 
-std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
-                                                  std::ostream& os) {
+BSONObjBuilder& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
+                                                    BSONObjBuilder& out) {
     auto date = event.getDate();
     auto severity = event.getSeverity();
     LogComponent component = event.getComponent();
     StringData contextName = event.getContextName();
     StringData msg = event.getBaseMessage();
 
-    BSONObjBuilder bob;
-    bob << "t" << date;
-    bob << "s" << severity.toStringData();
+    out << "t" << date;
+    out << "s" << severity.toStringData();
     if (component > LogComponent::kDefault && component < LogComponent::kNumLogComponents) {
-        bob << "c" << component.toStringData();
+        out << "c" << component.toStringData();
     }
     if (!contextName.empty()) {
-        bob << "ctx" << contextName;
+        out << "ctx" << contextName;
     }
-    bob.append("msg", msg);
+    out.append("msg", msg);
 
+    return out;
+}
+
+std::ostream& MessageEventDocumentEncoder::encode(const MessageEventEphemeral& event,
+                                                  std::ostream& out) {
+    BSONObjBuilder bob;
+    encode(event, bob);
     BSONObj obj = bob.obj();
+
     switch (_format) {
         case LogFormat::JSON:
-            os << obj.jsonString(Strict, 0, false) << kEOL;
+            out << obj.jsonString(Strict, 0, false) << kEOL;
             break;
         case LogFormat::BSON:
-            os.write(obj.objdata(), obj.objsize());
+            out.write(obj.objdata(), obj.objsize());
             break;
         default:
             MONGO_UNREACHABLE;
     }
 
-    return os;
+    return out;
 }
 
 MessageEventDetailsEncoder::~MessageEventDetailsEncoder() {}
