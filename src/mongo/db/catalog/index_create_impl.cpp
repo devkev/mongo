@@ -279,7 +279,7 @@ StatusWith<std::vector<BSONObj>> MultiIndexBlockImpl::init(const std::vector<BSO
             index.options.getKeysMode = IndexAccessMethod::GetKeysMode::kRelaxConstraints;
         }
 
-        log() << "build index on: " << ns << " properties: " << descriptor->toString();
+        log() << "build index on: " << ns << " properties: " << descriptor->infoObj();
         if (index.bulk)
             log() << "\t building index using bulk method; build may temporarily use up to "
                   << eachIndexBuildMaxMemoryUsageBytes / 1024 / 1024 << " megabytes of RAM";
@@ -471,7 +471,7 @@ Status MultiIndexBlockImpl::insertAllDocumentsInCollection(std::set<RecordId>* d
     if (!ret.isOK())
         return ret;
 
-    log() << "build index done.  scanned " << n << " total records. " << t.seconds() << " secs";
+    log() << "build index done.  scanned " << n << " total records in " << Seconds(t.seconds());
 
     return Status::OK();
 }
