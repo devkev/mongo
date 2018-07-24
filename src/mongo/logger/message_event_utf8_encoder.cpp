@@ -95,7 +95,8 @@ BSONObjBuilder& MessageEventDocumentEncoder::encode(const MessageEventEphemeral&
     auto severity = event.getSeverity();
     LogComponent component = event.getComponent();
     StringData contextName = event.getContextName();
-    StringData msg = event.getBaseMessage();
+    StringData baseMessage = event.getBaseMessage();
+    const Messages& messages = event.getMessages();
 
     out << "t" << date;
     out << "s" << severity.toStringData();
@@ -105,7 +106,13 @@ BSONObjBuilder& MessageEventDocumentEncoder::encode(const MessageEventEphemeral&
     if (!contextName.empty()) {
         out << "ctx" << contextName;
     }
-    out.append("msg", msg);
+    if (!baseMessage.empty()) {
+        out << "base" << baseMessage;
+    }
+
+    BSONArrayBuilder bab;
+    messages.toBSONArray(bab);
+    out.appendArray("msg", bab.arr());
 
     return out;
 }
@@ -152,7 +159,14 @@ std::ostream& MessageEventDetailsEncoder::encode(const MessageEventEphemeral& ev
         os << '[' << contextName << "] ";
     }
 
-    StringData msg = event.getBaseMessage();
+    StringData baseMessage = event.getBaseMessage();
+    if (!baseMessage.empty()) {
+        os << baseMessage << ' ';
+    }
+
+    auto messages = event.getMessages();
+    std::string s = messages.toString();
+    StringData msg{s};
 
 #ifdef _WIN32
     // We need to translate embedded Unix style line endings into Windows style endings.
@@ -196,20 +210,33 @@ std::ostream& MessageEventWithContextEncoder::encode(const MessageEventEphemeral
     if (!contextName.empty()) {
         os << '[' << contextName << "] ";
     }
-    StringData message = event.getBaseMessage();
-    os << message;
-    if (!message.endsWith("\n"))
-        os << '\n';
+
+    StringData baseMessage = event.getBaseMessage();
+    if (!baseMessage.empty()) {
+        os << baseMessage << ' ';
+    }
+
+    auto messages = event.getMessages();
+    messages.toString(os);
+    os << '\n';
+
     return os;
 }
 
 MessageEventUnadornedEncoder::~MessageEventUnadornedEncoder() {}
 std::ostream& MessageEventUnadornedEncoder::encode(const MessageEventEphemeral& event,
                                                    std::ostream& os) {
-    StringData message = event.getBaseMessage();
-    os << message;
-    if (!message.endsWith("\n"))
-        os << '\n';
+    // So much sad repeated code....
+
+    StringData baseMessage = event.getBaseMessage();
+    if (!baseMessage.empty()) {
+        os << baseMessage << ' ';
+    }
+
+    auto messages = event.getMessages();
+    messages.toString(os);
+    os << '\n';
+
     return os;
 }
 
