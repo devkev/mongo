@@ -116,106 +116,125 @@ public:
     }
 
     LogstreamBuilder& operator<<(const char* x) {
-        stream() << x;
+        _coalesceStr(x);
         return *this;
     }
     LogstreamBuilder& operator<<(const std::string& x) {
-        stream() << x;
+        _coalesceStr(x);
         return *this;
     }
     LogstreamBuilder& operator<<(StringData x) {
-        stream() << x;
+        _coalesceStr(x.toString());  // blah, causes a copy
         return *this;
     }
     LogstreamBuilder& operator<<(char* x) {
-        stream() << x;
+        _coalesceStr(x);
         return *this;
     }
     LogstreamBuilder& operator<<(char x) {
-        stream() << x;
+        _coalesceStr(x);
         return *this;
     }
     LogstreamBuilder& operator<<(int x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(ExitCode x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned short x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(double x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(void* x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(const void* x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(long long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(unsigned long long x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
     LogstreamBuilder& operator<<(bool x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
 
     LogstreamBuilder& operator<<(const boost::posix_time::ptime& x) {
+        _handleStr();
         stream() << x;
         return *this;
     }
 
     template <typename Period>
     LogstreamBuilder& operator<<(const Duration<Period>& d) {
+        _handleStr();
         stream() << d;
         return *this;
     }
 
     LogstreamBuilder& operator<<(BSONType t) {
+        _handleStr();
         stream() << typeName(t);
         return *this;
     }
 
     LogstreamBuilder& operator<<(ErrorCodes::Error ec) {
+        _handleStr();
         stream() << ErrorCodes::errorString(ec);
         return *this;
     }
 
     template <typename T>
     LogstreamBuilder& operator<<(const T& x) {
+        _handleStr();
         stream() << x.toString();
         return *this;
     }
 
     LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        _handleStr();
         stream() << manip;
         return *this;
     }
     LogstreamBuilder& operator<<(std::ios_base& (*manip)(std::ios_base&)) {
+        _handleStr();
         stream() << manip;
         return *this;
     }
@@ -225,7 +244,10 @@ public:
         if (optional) {
             (*this << *optional);
         } else {
-            (*this << "(nothing)");
+            // Don't want this to be subject to string coalescence.
+            //(*this << "(nothing)");
+            _handleStr();
+            stream() << "(nothing)";
         }
         return *this;
     }
@@ -254,6 +276,24 @@ private:
     Tee* _tee;
     bool _isTruncatable = true;
     bool _shouldCache;
+
+    std::string _str;
+    bool _strUsed = false;
+
+    template <typename Str>
+    void _coalesceStr(const Str& s) {
+        _str += s;
+        _strUsed = true;
+    }
+
+    void _handleStr() {
+        if (_strUsed) {
+            stream() << _str;
+            _str.clear();
+            _strUsed = false;
+        }
+    }
+
 };
 
 
