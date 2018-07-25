@@ -529,6 +529,7 @@ if not has_option('noshell') and usemozjs:
         LIBDEPS=[
             "$BUILD_DIR/third_party/shim_pcrecpp",
             "shell_core",
+            "db/curop",      # aieeeeeeeeeeeeeeeeeee
             "db/server_options_core",
             "client/clientdriver_network",
             "$BUILD_DIR/mongo/util/password",

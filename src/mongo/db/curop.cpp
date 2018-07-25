@@ -362,11 +362,8 @@ bool CurOp::completeAndLogOperation(OperationContext* opCtx,
 
     if (shouldLogOp || (shouldSample && _debug.executionTimeMicros > slowMs * 1000LL)) {
         const auto lockerInfo = opCtx->lockState()->getLockerInfo();
-        log(component) << _debug.report(client, *this, (lockerInfo ? &lockerInfo->stats : nullptr));
-        // Replacing the above line with the below would work, but breaks (changes) the format of Plain logs.
-        //BSONObjBuilder bob;
-        //_debug.appendForLog(client, *this, (lockerInfo ? &lockerInfo->stats : nullptr), bob);
-        //log(component) << bob.obj();
+        // This thing is basically just a closure around OpDebug, so that we can run results()/appendForLog() later on.
+        log(component) << OpDebugExtra(_debug, client, *this, (lockerInfo ? &lockerInfo->stats : nullptr));
     }
 
     // Return 'true' if this operation should also be added to the profiler.
