@@ -20,7 +20,8 @@ env.CppUnitTest('log_component_settings_test', 'log_component_settings_test.cpp'
                          '$BUILD_DIR/mongo/unittest/concurrency'])
 
 env.CppUnitTest('log_test', 'log_test.cpp',
-                LIBDEPS=['$BUILD_DIR/mongo/base'])
+                LIBDEPS=['$BUILD_DIR/mongo/base',
+                         '$BUILD_DIR/mongo/db/curop'])
 
 env.CppUnitTest('log_function_test', 'log_function_test.cpp',
                 LIBDEPS=['$BUILD_DIR/mongo/base'])
