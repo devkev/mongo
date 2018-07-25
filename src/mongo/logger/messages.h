@@ -36,7 +36,6 @@
 #include "mongo/base/string_data.h"
 #include "mongo/bson/bsonobjbuilder.h"
 #include "mongo/bson/timestamp.h"
-#include "mongo/db/opdebug_extra.h"
 #include "mongo/util/exit_code.h"
 #include "mongo/util/time_support.h"
 
@@ -93,7 +92,6 @@ struct VariantContainer {
             [&](const Minutes& x) { out << BSON("$duration" << x.count() << "$units" << "min"); },
             [&](const Hours& x) { out << BSON("$duration" << x.count() << "$units" << "hr"); },
             [&](const boost::posix_time::ptime& x) { std::ostringstream os; os << x; out << os.str(); },
-            [&](const OpDebugExtra& x) { BSONObjBuilder bob; x.append(bob); out << bob.obj(); },
         });
     }
 
@@ -101,7 +99,6 @@ struct VariantContainer {
         visit(overloaded {
             [&](const auto& x) { out << x; },
             [&](const Timestamp& x) { out << x.toString(); },
-            [&](const OpDebugExtra& x) { out << x.report(); },
         });
     }
 
@@ -165,7 +162,6 @@ using Messages = VariantContainer<StringData,
                                   boost::posix_time::ptime,
                                   BSONObj,
                                   BSONElement,
-                                  OpDebugExtra,
                                   LogLambda,
                                   bool>;
 
