@@ -43,6 +43,10 @@ class stream;
 
 namespace mongo {
 
+namespace logger {
+class LogstreamBuilder;
+}  // namespace logger
+
 // Including builder.h here would cause a cycle.
 template <typename Allocator>
 class StringBuilderImpl;
@@ -262,6 +266,9 @@ inline bool operator==(const ErrorCodes::Error lhs, const Status& rhs);
 inline bool operator!=(const ErrorCodes::Error lhs, const Status& rhs);
 
 std::ostream& operator<<(std::ostream& os, const Status& status);
+
+logger::LogstreamBuilder& operator<<(logger::LogstreamBuilder& log, const Status& status);
+logger::LogstreamBuilder&& operator<<(logger::LogstreamBuilder&& log, const Status& status);
 
 // This is only implemented for StringBuilder, not StackStringBuilder.
 template <typename Allocator>

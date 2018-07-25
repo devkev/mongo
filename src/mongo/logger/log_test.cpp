@@ -1093,5 +1093,62 @@ TEST_F(LogTestDocumentEncoder, Closure) {
     ASSERT_EQUALS(_logLines[0]["msg"]["0"].Obj()["$extra"].Double(), 84.6) << _logLines[0].jsonString(Strict);
 }
 
+TEST_F(LogTestDocumentEncoder, Status) {
+    _logLines.clear();
+    log() << Status::OK();
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["ok"].Bool(), true) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["0"].Int(), 0) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["1"].str(), "OK") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    {
+        Status status(ErrorCodes::BadValue, "bleh");
+        log() << status;
+    }
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["ok"].Bool(), false) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["0"].Int(), ErrorCodes::BadValue) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["1"].str(), "BadValue") << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["reason"].str(), "bleh") << _logLines[0].jsonString(Strict);
+}
+
+TEST_F(LogTestDocumentEncoder, StatusRedacted) {
+    globalLogDomain()->setShouldRedactLogs(true);
+
+    _logLines.clear();
+    log() << Status::OK();
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["ok"].Bool(), true) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["0"].Int(), 0) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["1"].str(), "OK") << _logLines[0].jsonString(Strict);
+
+    _logLines.clear();
+    {
+        Status status(ErrorCodes::BadValue, "bleh");
+        log() << status;
+    }
+    ASSERT_EQUALS(_logLines[0]["msg"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["ok"].Bool(), false) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"].type(), Array) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["0"].Int(), ErrorCodes::BadValue) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["code"]["1"].str(), "BadValue") << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["reason"].type(), Object) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["reason"].Obj().nFields(), 1) << _logLines[0].jsonString(Strict);
+    ASSERT_EQUALS(_logLines[0]["msg"]["0"]["reason"]["$redacted"].Bool(), true) << _logLines[0].jsonString(Strict);
+
+}
+
 }  // namespace
 }  // namespace mongo

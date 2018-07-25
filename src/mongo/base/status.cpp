@@ -110,6 +110,53 @@ std::ostream& operator<<(std::ostream& os, const Status& status) {
     return os << status.codeString() << " " << status.reason();
 }
 
+LogstreamBuilder& operator<<(LogstreamBuilder& log, const Status& status) {
+    log << logger::LogLambda{
+        [&](std::ostream& out) {
+            if (!logger::globalLogDomain()->shouldRedactLogs()) {
+                out << status.toString();
+            }
+
+            // Construct a status representation without the reason()
+            StringBuilder sb;
+            sb << status.codeString();
+            if (!status.isOK())
+                sb << ": " << /*kRedactionDefaultMask*/ "###";
+            out << sb.str();
+        },
+        [&](BSONArrayBuilder& out) {
+            BSONObjBuilder bob;
+            bob << "ok" << status.isOK();
+            bob << "code" << BSON_ARRAY(status.code() << status.codeString());
+            bool shouldRedact = logger::globalLogDomain()->shouldRedactLogs();
+            auto reason = status.reason();
+            if (!reason.empty()) {
+                if (shouldRedact) {
+                    bob << "reason" << BSON("$redacted" << true);
+                } else {
+                    bob << "reason" << reason;
+                }
+            }
+            auto extraInfo = status.extraInfo();
+            if (extraInfo) {
+                if (shouldRedact) {
+                    bob << "extraInfo" << BSON("$redacted" << true);
+                } else {
+                    BSONObjBuilder extraBob;
+                    extraInfo->serialize(&extraBob);
+                    bob << "extraInfo" << extraBob.obj();
+                }
+            }
+            out << bob.obj();
+        }
+    };
+    return log;
+}
+
+LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const Status& status) {
+    return std::move(log << status);
+}
+
 template <typename Allocator>
 StringBuilderImpl<Allocator>& operator<<(StringBuilderImpl<Allocator>& sb, const Status& status) {
     sb << status.codeString();
