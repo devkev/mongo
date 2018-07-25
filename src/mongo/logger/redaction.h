@@ -72,7 +72,7 @@ inline StringData redact(const std::string& stringToRedact) {
  *  In 'redact' mode keep status code and replace reason with '###'.
  *  In normal mode return statusToRedact.toString().
  */
-std::string redact(const Status& statusToRedact);
+const Status& redact(const Status& statusToRedact);
 
 /**
  * In 'redact' mode keep exception type and replace causedBy with '###'.

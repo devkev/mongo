@@ -61,17 +61,20 @@ StringData redact(StringData stringToRedact) {
     return kRedactionDefaultMask;
 }
 
-std::string redact(const Status& statusToRedact) {
-    if (!logger::globalLogDomain()->shouldRedactLogs()) {
-        return statusToRedact.toString();
-    }
+const Status& redact(const Status& statusToRedact) {
+    // Statuses are now self-redacting when logged.
+    //
+    // If there are calls to redact(const Status&) in other contexts, eg.
+    // constructing an error message to return from a command, then we probably
+    // can't use this cheat and will need to either:
+    //
+    // - everywhere that redact(const Status&) is called for logging purposes,
+    // remove that call and just log the Status directly, or
+    //
+    // - put the old redact(const Status&) back under a different name, and fix
+    // the non-logging call sites to call the new function instead.
 
-    // Construct a status representation without the reason()
-    StringBuilder sb;
-    sb << statusToRedact.codeString();
-    if (!statusToRedact.isOK())
-        sb << ": " << kRedactionDefaultMask;
-    return sb.str();
+    return statusToRedact;
 }
 
 std::string redact(const DBException& exceptionToRedact) {
