@@ -231,12 +231,6 @@ public:
         return *this;
     }
 
-    LogstreamBuilder& operator<<(const OpDebugExtra& x) {
-        _handleStr();
-        stream() << x;
-        return *this;
-    }
-
     LogstreamBuilder& operator<<(const LogLambda& x) {
         _handleStr();
         stream() << x;

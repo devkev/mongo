@@ -198,7 +198,6 @@ env.Library(
     target='curop',
     source=[
         'curop.cpp',
-        'opdebug_extra.cpp',
     ],
     LIBDEPS=[
         '$BUILD_DIR/mongo/bson/mutable/mutable_bson',
