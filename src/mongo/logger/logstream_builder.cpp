@@ -117,10 +117,14 @@ LogstreamBuilder::~LogstreamBuilder() {
     }
 }
 
-void LogstreamBuilder::operator<<(Tee* tee) {
-    makeStream();  // Adding a Tee counts for purposes of deciding to make a log message.
+void operator<<(LogstreamBuilder& log, Tee* tee) {
+    log.makeStream();  // Adding a Tee counts for purposes of deciding to make a log message.
     // TODO: dassert(!_tee);
-    _tee = tee;
+    log._tee = tee;
+}
+
+void operator<<(LogstreamBuilder&& log, Tee* tee) {
+    log << tee;
 }
 
 void LogstreamBuilder::makeStream() {
