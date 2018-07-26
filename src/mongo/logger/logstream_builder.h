@@ -115,135 +115,135 @@ public:
         return *this;
     }
 
-    LogstreamBuilder& operator<<(const char* x) {
-        _coalesceStr(x);
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const char* x) {
+        log._coalesceStr(x);
+        return log;
     }
-    LogstreamBuilder& operator<<(const std::string& x) {
-        _coalesceStr(x);
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const std::string& x) {
+        log._coalesceStr(x);
+        return log;
     }
-    LogstreamBuilder& operator<<(StringData x) {
-        _coalesceStr(x.toString());  // blah, causes a copy
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, StringData x) {
+        log._coalesceStr(x.toString());  // blah, causes a copy
+        return log;
     }
-    LogstreamBuilder& operator<<(char* x) {
-        _coalesceStr(x);
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, char* x) {
+        log._coalesceStr(x);
+        return log;
     }
-    LogstreamBuilder& operator<<(char x) {
-        _coalesceStr(x);
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, char x) {
+        log._coalesceStr(x);
+        return log;
     }
-    LogstreamBuilder& operator<<(int x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, int x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(ExitCode x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, ExitCode x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(long x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, long x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(unsigned long x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, unsigned long x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(unsigned x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, unsigned x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(unsigned short x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, unsigned short x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(double x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, double x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(void* x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, void* x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(const void* x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const void* x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(long long x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, long long x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(unsigned long long x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, unsigned long long x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(bool x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, bool x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(const BSONObj& x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const BSONObj& x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
-    LogstreamBuilder& operator<<(const BSONElement& x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const BSONElement& x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
 
-    LogstreamBuilder& operator<<(const boost::posix_time::ptime& x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const boost::posix_time::ptime& x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
 
     template <typename Period>
-    LogstreamBuilder& operator<<(const Duration<Period>& d) {
-        _handleStr();
-        stream() << d;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const Duration<Period>& d) {
+        log._handleStr();
+        log.stream() << d;
+        return log;
     }
 
-    LogstreamBuilder& operator<<(BSONType t) {
-        _handleStr();
-        stream() << typeName(t);
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, BSONType t) {
+        log._handleStr();
+        log.stream() << typeName(t);
+        return log;
     }
 
-    LogstreamBuilder& operator<<(ErrorCodes::Error ec) {
-        _handleStr();
-        stream() << ErrorCodes::errorString(ec);
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, ErrorCodes::Error ec) {
+        log._handleStr();
+        log.stream() << ErrorCodes::errorString(ec);
+        return log;
     }
 
-    LogstreamBuilder& operator<<(const LogLambda& x) {
-        _handleStr();
-        stream() << x;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const LogLambda& x) {
+        log._handleStr();
+        log.stream() << x;
+        return log;
     }
 
-    template <typename T>
-    LogstreamBuilder& operator<<(const T& x) {
-        _handleStr();
-        stream() << x.toString();
+    template <class T>
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const T& x) {
+        log._handleStr();
+        log.stream() << x.toString();
         // Would be good to convert the canonical stringifier from member Foo::toString() to friend operator<<(ostream&, const Foo&)
-        //stream() << (str::stream() << x);
-        return *this;
+        //log.stream() << (str::stream() << x);
+        return log;
     }
 
     // Hmmmmm.
@@ -251,35 +251,144 @@ public:
     // rg -w 'std::((no)?(boolalpha|showbase|showpoint|skipws|uppercase|unitbuf|emit_on_flush)|internal|left|right|dec|hex|oct|fixed|scientific|hexfloat|defaultfloat|ends|flush|endl|flush_emit|resetiosflags|setiosflags|setbase|setfill|setprecision|setw|get_money|put_money|get_time|put_time|quoted)'
     // Probably we can add it to the list of types in Messages, and actually store them properly.
     // Then BSONArray visitation can just ignore them, while String visitation can just apply them as normal (and they will take effect, as normal).
-    LogstreamBuilder& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        _handleStr();
-        //stream() << manip;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, std::ostream& (*manip)(std::ostream&)) {
+        log._handleStr();
+        //log.stream() << manip;
+        return log;
     }
-    LogstreamBuilder& operator<<(std::ios_base& (*manip)(std::ios_base&)) {
-        _handleStr();
-        //stream() << manip;
-        return *this;
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, std::ios_base& (*manip)(std::ios_base&)) {
+        log._handleStr();
+        //log.stream() << manip;
+        return log;
     }
 
     template <typename OptionalType>
-    LogstreamBuilder& operator<<(const boost::optional<OptionalType>& optional) {
+    friend LogstreamBuilder& operator<<(LogstreamBuilder& log, const boost::optional<OptionalType>& optional) {
         if (optional) {
-            (*this << *optional);
+            (log << *optional);
         } else {
             // Don't want this to be subject to string coalescence.
             //(*this << "(nothing)");
-            _handleStr();
-            stream() << "(nothing)";
+            log._handleStr();
+            log.stream() << "(nothing)";
         }
-        return *this;
+        return log;
     }
 
     /**
      * In addition to appending the message to _domain, write it to the given tee.  May only
      * be called once per instance of LogstreamBuilder.
      */
-    void operator<<(Tee* tee);
+    friend void operator<<(LogstreamBuilder& log, Tee* tee);
+
+
+
+    // Don't know why this doesn't work to replace all the below.
+    //template <typename T>
+    //friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, T x) {
+    //    //return std::move(log << x);
+    //    auto& l = log;
+    //    return std::move(l << x);
+    //}
+
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const char* x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const std::string& x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, StringData x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, char* x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, char x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, int x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, ExitCode x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, long x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, unsigned long x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, unsigned x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, unsigned short x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, double x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, void* x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const void* x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, long long x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, unsigned long long x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, bool x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const BSONObj& x) {
+        return std::move(log << x);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const BSONElement& x) {
+        return std::move(log << x);
+    }
+
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const boost::posix_time::ptime& x) {
+        return std::move(log << x);
+    }
+
+    template <typename Period>
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const Duration<Period>& d) {
+        return std::move(log << d);
+    }
+
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, BSONType t) {
+        return std::move(log << t);
+    }
+
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, ErrorCodes::Error ec) {
+        return std::move(log << ec);
+    }
+
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const LogLambda& x) {
+        return std::move(log << x);
+    }
+
+    template <class T>
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const T& x) {
+        return std::move(log << x);
+    }
+
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, std::ostream& (*manip)(std::ostream&)) {
+        return std::move(log << manip);
+    }
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, std::ios_base& (*manip)(std::ios_base&)) {
+        return std::move(log << manip);
+    }
+
+    template <typename OptionalType>
+    friend LogstreamBuilder&& operator<<(LogstreamBuilder&& log, const boost::optional<OptionalType>& optional) {
+        return std::move(log << optional);
+    }
+
+    friend void operator<<(LogstreamBuilder&& log, Tee* tee);
+
 
 private:
     void makeStream();
