@@ -615,14 +615,14 @@ Status MigrationSourceManager::commitChunkMetadataOnConfig(OperationContext* opC
         auto deleteStatus = notification.waitStatus(opCtx);
         if (!deleteStatus.isOK()) {
             return {ErrorCodes::OrphanedRangeCleanUpFailed,
-                    orphanedRangeCleanUpErrMsg + redact(deleteStatus)};
+                    str::stream() << orphanedRangeCleanUpErrMsg << redact(deleteStatus)};
         }
         return Status::OK();
     }
 
     if (notification.ready() && !notification.waitStatus(opCtx).isOK()) {
         return {ErrorCodes::OrphanedRangeCleanUpFailed,
-                orphanedRangeCleanUpErrMsg + redact(notification.waitStatus(opCtx))};
+                str::stream() << orphanedRangeCleanUpErrMsg << redact(notification.waitStatus(opCtx))};
     } else {
         log() << "Leaving cleanup of " << getNss().ns() << " range " << redact(range.toString())
               << " to complete in background";
