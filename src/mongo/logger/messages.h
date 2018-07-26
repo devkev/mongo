@@ -109,23 +109,33 @@ struct VariantContainer {
     }
 };
 
-struct LogLambda {
+class LogLambda {
+public:
     LogLambda(std::function<void(std::ostream&)> ostreamer, std::function<void(BSONArrayBuilder&)> baber)
         : _ostreamer(ostreamer), _baber(baber)
         {}
 
-    std::function<void(std::ostream&)> _ostreamer;
-    std::function<void(BSONArrayBuilder&)> _baber;
-
     friend std::ostream& operator<<(std::ostream& out, const LogLambda& ll) {
-        ll._ostreamer(out);
-        return out;
+        return ll.output(out);
     }
 
     friend BSONArrayBuilder& operator<<(BSONArrayBuilder& out, const LogLambda& ll) {
-        ll._baber(out);
+        return ll.output(out);
+    }
+
+protected:
+    virtual std::ostream& output(std::ostream& out) const {
+        _ostreamer(out);
         return out;
     }
+    virtual BSONArrayBuilder& output(BSONArrayBuilder& out) const {
+        _baber(out);
+        return out;
+    }
+
+private:
+    std::function<void(std::ostream&)> _ostreamer;
+    std::function<void(BSONArrayBuilder&)> _baber;
 };
 
 // For the non-POD types below, write a template class Unowned<Foo>, which
