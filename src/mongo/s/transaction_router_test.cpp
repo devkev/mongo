@@ -1498,9 +1498,6 @@ TEST_F(TransactionRouterTest, CommitWithRecoveryTokenWithUnknownShard) {
     shardType.setName(shard1.toString());
     shardType.setHost(hostAndPort1.toString());
 
-    // ShardRegistry will try to perform a reload since it doesn't know about the shard.
-    expectGetShards({shardType});
-
     ASSERT_THROWS_CODE(future.default_timed_get(), DBException, ErrorCodes::ShardNotFound);
 }
 

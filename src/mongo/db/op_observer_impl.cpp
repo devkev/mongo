@@ -1326,7 +1326,7 @@ void OpObserverImpl::onReplicationRollback(OperationContext* opCtx,
     // the stale data that has been just rolled back.
     if (serverGlobalParams.clusterRole == ClusterRole::ConfigServer) {
         if (auto shardRegistry = Grid::get(opCtx)->shardRegistry()) {
-            shardRegistry->clearEntries();
+            shardRegistry->clearEntries(opCtx);
         }
     }
 

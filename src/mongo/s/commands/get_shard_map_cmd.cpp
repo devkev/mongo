@@ -75,7 +75,7 @@ public:
                 "Sharding is not enabled",
                 grid->isShardingInitialized());
 
-        grid->shardRegistry()->toBSON(&result);
+        grid->shardRegistry()->toBSON(opCtx, &result);
         return true;
     }
 
