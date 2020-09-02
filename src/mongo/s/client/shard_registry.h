@@ -322,7 +322,7 @@ private:
                 forceReloadIncrement == other.forceReloadIncrement;
         }
         bool operator!=(const Time& other) const {
-            return ! (*this == other);
+            return !(*this == other);
         }
         bool operator>(const Time& other) const {
             return topologyTime > other.topologyTime || rsmIncrement > other.rsmIncrement ||
@@ -332,10 +332,10 @@ private:
             return (*this > other) || (*this == other);
         }
         bool operator<(const Time& other) const {
-            return ! (*this >= other);
+            return !(*this >= other);
         }
         bool operator<=(const Time& other) const {
-            return ! (*this > other);
+            return !(*this > other);
         }
 
         BSONObj toBSON() const {

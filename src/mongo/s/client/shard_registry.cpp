@@ -82,7 +82,12 @@ void ShardRegistry::init(ServiceContext* service) {
                            const Time& timeInStore) -> Cache::LookupResult {
         invariant(key == _kSingleton);
 
-        LOGV2_DEBUG(4620250, 1, "Start lookup", "cachedData"_attr = cachedData->toBSON(), "cachedData.getTime()"_attr = cachedData.getTime().toBSON(), "timeInStore"_attr = timeInStore.toBSON());
+        LOGV2_DEBUG(4620250,
+                    1,
+                    "Start lookup",
+                    "cachedData"_attr = cachedData->toBSON(),
+                    "cachedData.getTime()"_attr = cachedData.getTime().toBSON(),
+                    "timeInStore"_attr = timeInStore.toBSON());
 
         auto [returnData, returnTopologyTime, removedShards] =
             [&]() -> std::tuple<ShardRegistryData, Timestamp, ShardRegistryData::ShardMap> {
@@ -90,14 +95,22 @@ void ShardRegistry::init(ServiceContext* service) {
             if (timeInStore.topologyTime >= cachedData.getTime().topologyTime ||
                 timeInStore.forceReloadIncrement >= cachedData.getTime().forceReloadIncrement) {
                 LOGV2_DEBUG(4620251, 1, "call createFromCatalogClient");
-                auto [reloadedData, maxTopologyTime] = ShardRegistryData::createFromCatalogClient(
-                    opCtx, _shardFactory.get());
+                auto [reloadedData, maxTopologyTime] =
+                    ShardRegistryData::createFromCatalogClient(opCtx, _shardFactory.get());
 
-                LOGV2_DEBUG(4620252, 1, "call mergeExisting", "reloadedData"_attr = reloadedData.toBSON(), "maxTopologyTime"_attr = maxTopologyTime);
+                LOGV2_DEBUG(4620252,
+                            1,
+                            "call mergeExisting",
+                            "reloadedData"_attr = reloadedData.toBSON(),
+                            "maxTopologyTime"_attr = maxTopologyTime);
                 auto [mergedData, removedShards] =
                     ShardRegistryData::mergeExisting(*cachedData, reloadedData);
 
-                LOGV2_DEBUG(4620253, 1, "done fetching", "mergedData"_attr = mergedData.toBSON(), "num removedShards"_attr = removedShards.size());
+                LOGV2_DEBUG(4620253,
+                            1,
+                            "done fetching",
+                            "mergedData"_attr = mergedData.toBSON(),
+                            "num removedShards"_attr = removedShards.size());
                 return {mergedData, maxTopologyTime, removedShards};
             } else {
                 LOGV2_DEBUG(4620254, 1, "not fetching");
@@ -107,12 +120,19 @@ void ShardRegistry::init(ServiceContext* service) {
 
         // Always apply the latest conn strings.
         auto latestConnStrings = _getLatestConnStrings();
-        LOGV2_DEBUG(4620255, 1, "applying latest conn strings", "numLatestConnStrings"_attr = latestConnStrings.size());
+        LOGV2_DEBUG(4620255,
+                    1,
+                    "applying latest conn strings",
+                    "numLatestConnStrings"_attr = latestConnStrings.size());
 
         for (const auto& latestConnString : latestConnStrings) {
             // FIXME: optimise by only doing it if the latest conn string differs
 
-            LOGV2_DEBUG(4620256, 1, "processing latest conn string", "replSetName"_attr = latestConnString.first, "latestConnString"_attr = latestConnString.second);
+            LOGV2_DEBUG(4620256,
+                        1,
+                        "processing latest conn string",
+                        "replSetName"_attr = latestConnString.first,
+                        "latestConnString"_attr = latestConnString.second);
             auto shard = returnData.findByRSName(latestConnString.first.toString());
             if (!shard) {
                 LOGV2_DEBUG(4620257, 1, "no shard, skipping");
@@ -149,8 +169,13 @@ void ShardRegistry::init(ServiceContext* service) {
         // FIXME: only when we have fetched from the config servers, I think?
         _isUp.store(true);
 
-        Time returnTime{returnTopologyTime, timeInStore.rsmIncrement, timeInStore.forceReloadIncrement};
-        LOGV2_DEBUG(4620259, 1, "final lookup result", "returnData"_attr = returnData.toBSON(), "returnTime"_attr = returnTime);
+        Time returnTime{
+            returnTopologyTime, timeInStore.rsmIncrement, timeInStore.forceReloadIncrement};
+        LOGV2_DEBUG(4620259,
+                    1,
+                    "final lookup result",
+                    "returnData"_attr = returnData.toBSON(),
+                    "returnTime"_attr = returnTime);
         return Cache::LookupResult{returnData, returnTime};
     };
 
@@ -159,12 +184,10 @@ void ShardRegistry::init(ServiceContext* service) {
 
     {
         stdx::unique_lock<Latch> lock(_mutex);
-        _cache->insertOrAssign(_kSingleton,
-                               {},
-                               Date_t::now(),
-                               Time());
+        _cache->insertOrAssign(_kSingleton, {}, Date_t::now(), Time());
         // FIXME: could move to the ctor
-        _configShardData = ShardRegistryData::createWithConfigShardOnly(_shardFactory->createShard(kConfigServerShardId, _initConfigServerCS));
+        _configShardData = ShardRegistryData::createWithConfigShardOnly(
+            _shardFactory->createShard(kConfigServerShardId, _initConfigServerCS));
     }
     _isInitialized.store(true);
 }
@@ -219,7 +242,8 @@ int ShardRegistry::getNumShards(OperationContext* opCtx) {
     return seen.size();
 }
 
-std::vector<ShardRegistry::LatestConnStrings::value_type> ShardRegistry::_getLatestConnStrings() const {
+std::vector<ShardRegistry::LatestConnStrings::value_type> ShardRegistry::_getLatestConnStrings()
+    const {
     stdx::unique_lock<Latch> lock(_mutex);
     return {_latestConnStrings.begin(), _latestConnStrings.end()};
 }
@@ -240,7 +264,11 @@ void ShardRegistry::updateReplSetHosts(const ConnectionString& newConnString) {
         // Stash the new connection string and bump the RSM increment.
         _latestConnStrings[newConnString.getSetName()] = newConnString;
         auto value = _rsmIncrement.addAndFetch(1);
-        LOGV2_DEBUG(4620270, 1, "stashed newConnString", "newConnString"_attr = newConnString, "newRSMIncrement"_attr = value);
+        LOGV2_DEBUG(4620270,
+                    1,
+                    "stashed newConnString",
+                    "newConnString"_attr = newConnString,
+                    "newRSMIncrement"_attr = value);
     }
 
     // Schedule a lookup, to incorporate the new connection string.
@@ -275,7 +303,7 @@ void ShardRegistry::updateReplSetHosts(const ConnectionString& newConnString) {
                     "error"_attr = redact(status.getStatus()));
     }
 
-    //Grid::get(_service)->getExecutorPool()->getFixedExecutor()->wait(status.getValue());
+    // Grid::get(_service)->getExecutorPool()->getFixedExecutor()->wait(status.getValue());
 }
 
 std::unique_ptr<Shard> ShardRegistry::createConnection(const ConnectionString& connStr) const {
@@ -671,7 +699,9 @@ void ShardRegistryData::_addShard(std::shared_ptr<Shard> shard, bool useOriginal
     }
 }
 
-void ShardRegistryData::toBSON(BSONObjBuilder* map, BSONObjBuilder* hosts, BSONObjBuilder* connStrings) const {
+void ShardRegistryData::toBSON(BSONObjBuilder* map,
+                               BSONObjBuilder* hosts,
+                               BSONObjBuilder* connStrings) const {
     std::vector<std::shared_ptr<Shard>> shards;
     getAllShards(shards);
 
