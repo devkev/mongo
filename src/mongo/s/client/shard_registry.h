@@ -36,6 +36,7 @@
 #include "mongo/client/connection_string.h"
 #include "mongo/db/operation_context.h"
 #include "mongo/db/server_options.h"
+#include "mongo/executor/task_executor.h"
 #include "mongo/platform/mutex.h"
 #include "mongo/s/client/shard.h"
 #include "mongo/s/client/shard_factory.h"
@@ -198,6 +199,17 @@ public:
      * this while its still not fully constructed.
      */
     void init(ServiceContext* service);
+
+    /**
+     * Startup the periodic reloader of the ShardRegistry.
+     * Can be called only after ShardRegistry::init()
+     */
+    void startupPeriodicReloader(OperationContext* opCtx);
+
+    /**
+     * Shutdown the periodic reloader of the ShardRegistry.
+     */
+    void shutdownPeriodicReloader();
 
     /**
      * Shuts down the threadPool. Needs to be called explicitly because ShardRegistry is never
@@ -388,6 +400,9 @@ private:
 
     std::vector<LatestConnStrings::value_type> _getLatestConnStrings() const;
 
+
+    void _periodicReload(const executor::TaskExecutor::CallbackArgs& cbArgs);
+
     /**
      * Factory to create shards.  Never changed after startup so safe to access outside of _mutex.
      */
@@ -398,6 +413,9 @@ private:
      * shard.
      */
     const ConnectionString _initConfigServerCS;
+
+    // Executor for periodic reloading.
+    std::unique_ptr<executor::TaskExecutor> _executor{};
 
     /**
      * A list of callbacks to be called asynchronously when it has been discovered that a shard was

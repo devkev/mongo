@@ -35,15 +35,24 @@
 
 #include "mongo/client/replica_set_monitor.h"
 #include "mongo/db/client.h"
+#include "mongo/db/logical_time_metadata_hook.h"
 #include "mongo/db/vector_clock.h"
+#include "mongo/executor/network_interface_factory.h"
+#include "mongo/executor/network_interface_thread_pool.h"
 #include "mongo/executor/task_executor_pool.h"
+#include "mongo/executor/thread_pool_task_executor.h"
 #include "mongo/logv2/log.h"
+#include "mongo/rpc/metadata/egress_metadata_hook_list.h"
 #include "mongo/s/catalog/sharding_catalog_client.h"
 #include "mongo/s/catalog/type_shard.h"
 #include "mongo/s/grid.h"
 #include "mongo/util/str.h"
 
 namespace mongo {
+
+namespace {
+const Seconds kRefreshPeriod(30);
+}  // namespace
 
 using CallbackArgs = executor::TaskExecutor::CallbackArgs;
 
@@ -192,12 +201,99 @@ void ShardRegistry::init(ServiceContext* service) {
     _isInitialized.store(true);
 }
 
+void ShardRegistry::startupPeriodicReloader(OperationContext* opCtx) {
+    invariant(_isInitialized.load());
+    // startup() must be called only once
+    invariant(!_executor);
+
+    auto hookList = std::make_unique<rpc::EgressMetadataHookList>();
+    hookList->addHook(std::make_unique<rpc::LogicalTimeMetadataHook>(opCtx->getServiceContext()));
+
+    // construct task executor
+    auto net = executor::makeNetworkInterface("ShardRegistryUpdater", nullptr, std::move(hookList));
+    auto netPtr = net.get();
+    _executor = std::make_unique<executor::ThreadPoolTaskExecutor>(
+        std::make_unique<executor::NetworkInterfaceThreadPool>(netPtr), std::move(net));
+    LOGV2_DEBUG(22724, 1, "Starting up task executor for periodic reloading of ShardRegistry");
+    _executor->startup();
+
+    auto status =
+        _executor->scheduleWork([this](const CallbackArgs& cbArgs) { _periodicReload(cbArgs); });
+
+    if (status.getStatus() == ErrorCodes::ShutdownInProgress) {
+        LOGV2_DEBUG(22725, 1, "Cant schedule Shard Registry reload. Executor shutdown in progress");
+        return;
+    }
+
+    if (!status.isOK()) {
+        LOGV2_FATAL(40252,
+                    "Error scheduling shard registry reload caused by {error}",
+                    "Error scheduling shard registry reload",
+                    "error"_attr = redact(status.getStatus()));
+    }
+}
+
+void ShardRegistry::shutdownPeriodicReloader() {
+    if (_executor) {
+        LOGV2_DEBUG(22723, 1, "Shutting down task executor for reloading shard registry");
+        _executor->shutdown();
+        _executor->join();
+        _executor.reset();
+    }
+}
+
 void ShardRegistry::shutdown() {
+    shutdownPeriodicReloader();
+
     if (!_isShutdown.load()) {
-        LOGV2_DEBUG(22723, 1, "Shutting down shard registry");
+        LOGV2_DEBUG(4620235, 1, "Shutting down shard registry");
         _threadPool.shutdown();
         _threadPool.join();
         _isShutdown.store(true);
+    }
+}
+
+void ShardRegistry::_periodicReload(const CallbackArgs& cbArgs) {
+    LOGV2_DEBUG(22726, 1, "Reloading shardRegistry");
+    if (!cbArgs.status.isOK()) {
+        LOGV2_WARNING(22734,
+                      "Error reloading shard registry caused by {error}",
+                      "Error reloading shard registry",
+                      "error"_attr = redact(cbArgs.status));
+        return;
+    }
+
+    ThreadClient tc("shard-registry-reload", getGlobalServiceContext());
+
+    auto opCtx = tc->makeOperationContext();
+
+    try {
+        reload(opCtx.get());
+    } catch (const DBException& e) {
+        LOGV2(22727,
+              "Error running periodic reload of shard registry caused by {error}; will retry after "
+              "{shardRegistryReloadInterval}",
+              "Error running periodic reload of shard registry",
+              "error"_attr = redact(e),
+              "shardRegistryReloadInterval"_attr = kRefreshPeriod);
+    }
+
+    // reschedule itself
+    auto status =
+        _executor->scheduleWorkAt(_executor->now() + kRefreshPeriod,
+                                  [this](const CallbackArgs& cbArgs) { _periodicReload(cbArgs); });
+
+    if (status.getStatus() == ErrorCodes::ShutdownInProgress) {
+        LOGV2_DEBUG(
+            22728, 1, "Error scheduling shard registry reload. Executor shutdown in progress");
+        return;
+    }
+
+    if (!status.isOK()) {
+        LOGV2_FATAL(40253,
+                    "Error scheduling shard registry reload caused by {error}",
+                    "Error scheduling shard registry reload",
+                    "error"_attr = redact(status.getStatus()));
     }
 }
 
