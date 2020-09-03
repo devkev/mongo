@@ -31,7 +31,7 @@ var testMoveChunkWithSession = function(
         st.rs1.getPrimary().adminCommand({replSetStepDown: 60, secondaryCatchUpPeriodSecs: 30}));
 
     st.rs1.awaitNodesAgreeOnPrimary();
-    st.configRS.nodes.concat([st.s]).forEach(function awaitNode(conn) {
+    [st.configRS.getPrimary(), st.s].forEach(function awaitNode(conn) {
         awaitRSClientHosts(conn, {host: st.rs1.getPrimary().host}, {ok: true, ismaster: true});
     });
 
