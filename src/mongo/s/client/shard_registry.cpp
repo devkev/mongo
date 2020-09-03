@@ -220,8 +220,14 @@ StatusWith<std::shared_ptr<Shard>> ShardRegistry::getShard(OperationContext* opC
         }
     }
 
-    auto data = _getData(opCtx);
-    if (auto shard = data->findShard(shardId)) {
+    if (auto shard = _getData(opCtx)->findShard(shardId)) {
+        return shard;
+    }
+
+    // FIXME only needed on mongos because they can be stale
+    // Reload and try again if the shard was not in the registry
+    reload(opCtx);
+    if (auto shard = _getData(opCtx)->findShard(shardId)) {
         return shard;
     }
 
