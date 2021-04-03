@@ -76,6 +76,7 @@ public:
     static constexpr TagMask kInternalClient = 2;
     static constexpr TagMask kLatestVersionInternalClientKeepOpen = 4;
     static constexpr TagMask kExternalClientKeepOpen = 8;
+    static constexpr TagMask kDefaultBatonHack = 16;
     static constexpr TagMask kPending = 1 << 31;
 
     virtual ~Session() = default;

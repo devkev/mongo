@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package mongodb;
+
+service Transport {
+  rpc SendMessage (Message) returns (Message) {}
+}
+
+message Message {
+  bytes payload = 1;
+}

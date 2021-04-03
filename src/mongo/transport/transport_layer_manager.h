@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "mongo/base/status.h"
+#include "mongo/db/default_baton.h"
 #include "mongo/platform/mutex.h"
 #include "mongo/transport/session.h"
 #include "mongo/transport/transport_layer.h"
@@ -94,7 +95,17 @@ public:
     BatonHandle makeBaton(OperationContext* opCtx) const override {
         stdx::lock_guard<Latch> lk(_tlsMutex);
         // TODO: figure out what to do about managers with more than one transport layer.
-        invariant(_tls.size() == 1);
+        invariant(_tls.size() == 2);
+
+        // TODO: this is definitely not kosher
+        if (opCtx->getClient()->session() &&
+            opCtx->getClient()->session()->getTags() & transport::Session::kDefaultBatonHack) {
+            invariant(!opCtx->getBaton());
+            auto baton = std::make_shared<DefaultBaton>(opCtx);
+            opCtx->setBaton(baton);
+            return baton;
+        }
+
         return _tls[0]->makeBaton(opCtx);
     }
 

@@ -42,6 +42,7 @@
 #include "mongo/transport/service_executor_synchronous.h"
 #include "mongo/transport/session.h"
 #include "mongo/transport/transport_layer_asio.h"
+#include "mongo/transport/transport_layer_grpc.h"
 #include "mongo/util/net/ssl_types.h"
 #include "mongo/util/time_support.h"
 
@@ -154,6 +155,12 @@ std::unique_ptr<TransportLayer> TransportLayerManager::createWithConfig(
 
     std::vector<std::unique_ptr<TransportLayer>> retVector;
     retVector.emplace_back(std::move(transportLayer));
+
+    // throw on an extra transport layer for gRPC
+    std::unique_ptr<TransportLayer> grpcTransport =
+        std::make_unique<transport::TransportLayerGRPC>(sep);
+    retVector.emplace_back(std::move(grpcTransport));
+
     return std::make_unique<TransportLayerManager>(std::move(retVector));
 }
 

@@ -31,7 +31,111 @@ env.Library(
     ],
 )
 
-tlEnv = env.Clone()
+grpcEnv = env.Clone()
+
+# TODO: Remove third_party abseil since gRPC is built with its own copy. This will
+#       not be required in the future when we bundle gRPC itself, we can link to our
+#       own vendored libabseil.
+grpcEnv['CPPPATH'] = [p for p in grpcEnv['CPPPATH'] if not 'abseil' in p]
+
+grpcEnv.Library(
+    target='transport_layer_grpc',
+    source=[
+        'transport_layer_grpc.cpp',
+        'mongodb.grpc.pb.cc',
+        'mongodb.pb.cc',
+    ],
+    LIBDEPS=[
+        'transport_layer_common',
+
+        # TODO: this is highly suspect, but it works for now..
+
+        '/home/ubuntu/opt/lib/libaddress_sorting.a',
+        '/home/ubuntu/opt/lib/libcares_static.a',
+        '/home/ubuntu/opt/lib/libgpr.a',
+        '/home/ubuntu/opt/lib/libgrpc.a',
+        '/home/ubuntu/opt/lib/libgrpc++.a',
+        '/home/ubuntu/opt/lib/libgrpc++_reflection.a',
+        '/home/ubuntu/opt/lib/libprotobuf.a',
+        '/home/ubuntu/opt/lib/libupb.a',
+        '/home/ubuntu/opt/lib/libre2.a',
+
+        '/home/ubuntu/opt/lib/libabsl_bad_any_cast_impl.a',
+        '/home/ubuntu/opt/lib/libabsl_bad_optional_access.a',
+        '/home/ubuntu/opt/lib/libabsl_bad_variant_access.a',
+        '/home/ubuntu/opt/lib/libabsl_base.a',
+        '/home/ubuntu/opt/lib/libabsl_city.a',
+        '/home/ubuntu/opt/lib/libabsl_civil_time.a',
+        '/home/ubuntu/opt/lib/libabsl_cord.a',
+        '/home/ubuntu/opt/lib/libabsl_debugging_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_demangle_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_examine_stack.a',
+        '/home/ubuntu/opt/lib/libabsl_exponential_biased.a',
+        '/home/ubuntu/opt/lib/libabsl_failure_signal_handler.a',
+        '/home/ubuntu/opt/lib/libabsl_flags.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_commandlineflag.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_commandlineflag_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_config.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_marshalling.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_parse.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_private_handle_accessor.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_program_name.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_reflection.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_usage.a',
+        '/home/ubuntu/opt/lib/libabsl_flags_usage_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_graphcycles_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_hash.a',
+        '/home/ubuntu/opt/lib/libabsl_hashtablez_sampler.a',
+        '/home/ubuntu/opt/lib/libabsl_int128.a',
+        '/home/ubuntu/opt/lib/libabsl_leak_check.a',
+        '/home/ubuntu/opt/lib/libabsl_leak_check_disable.a',
+        '/home/ubuntu/opt/lib/libabsl_log_severity.a',
+        '/home/ubuntu/opt/lib/libabsl_malloc_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_periodic_sampler.a',
+        '/home/ubuntu/opt/lib/libabsl_random_distributions.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_distribution_test_util.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_platform.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_pool_urbg.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_randen.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_randen_hwaes.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_randen_hwaes_impl.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_randen_slow.a',
+        '/home/ubuntu/opt/lib/libabsl_random_internal_seed_material.a',
+        '/home/ubuntu/opt/lib/libabsl_random_seed_gen_exception.a',
+        '/home/ubuntu/opt/lib/libabsl_random_seed_sequences.a',
+        '/home/ubuntu/opt/lib/libabsl_raw_hash_set.a',
+        '/home/ubuntu/opt/lib/libabsl_raw_logging_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_scoped_set_env.a',
+        '/home/ubuntu/opt/lib/libabsl_spinlock_wait.a',
+        '/home/ubuntu/opt/lib/libabsl_stacktrace.a',
+        '/home/ubuntu/opt/lib/libabsl_status.a',
+        '/home/ubuntu/opt/lib/libabsl_statusor.a',
+        '/home/ubuntu/opt/lib/libabsl_str_format_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_strerror.a',
+        '/home/ubuntu/opt/lib/libabsl_strings.a',
+        '/home/ubuntu/opt/lib/libabsl_strings_internal.a',
+        '/home/ubuntu/opt/lib/libabsl_symbolize.a',
+        '/home/ubuntu/opt/lib/libabsl_synchronization.a',
+        '/home/ubuntu/opt/lib/libabsl_throw_delegate.a',
+        '/home/ubuntu/opt/lib/libabsl_time.a',
+        '/home/ubuntu/opt/lib/libabsl_time_zone.a',
+        '/home/ubuntu/opt/lib/libabsl_wyhash.a',
+    ],
+    LIBDEPS_PRIVATE=[
+        '$BUILD_DIR/mongo/util/net/network',
+    ],
+)
+
+grpcEnv.AppendUnique(
+    CPPPATH=['/home/ubuntu/opt/include'],
+    LIBPATH=['/home/ubuntu/opt/lib'],
+
+    # TODO: either figure out statically linking or adding a search path to mongo[d,s] build
+    # SYSLIBDEPS=['grpc', 'grpc++', 'protobuf']
+)
+
+tlEnv = grpcEnv.Clone()
 tlEnv.InjectThirdParty(libraries=['asio'])
 
 tlEnv.Library(
@@ -41,6 +145,7 @@ tlEnv.Library(
     ],
     LIBDEPS=[
         'transport_layer',
+        'transport_layer_grpc'
     ],
     LIBDEPS_PRIVATE=[
         'service_executor',
