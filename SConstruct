@@ -947,6 +947,10 @@ env_vars.Add('WINDOWS_OPENSSL_BIN',
     help='Sets the path to the openssl binaries for packaging',
     default='c:/openssl/bin')
 
+env_vars.Add('GRPC_PREFIX',
+    help='Sets the prefix for linking gRPC into the transport layer',
+    default=None)
+
 # -- Validate user provided options --
 
 # A dummy environment that should *only* have the variables we have set. In practice it has
