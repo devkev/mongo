@@ -147,6 +147,7 @@ private:
     class BatonASIO;
     class ASIOSession;
     class ASIOReactor;
+    friend class TransportLayerGRPC;
 
     using ASIOSessionHandle = std::shared_ptr<ASIOSession>;
     using ConstASIOSessionHandle = std::shared_ptr<const ASIOSession>;

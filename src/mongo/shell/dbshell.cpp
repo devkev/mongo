@@ -75,6 +75,7 @@
 #include "mongo/shell/shell_utils_launcher.h"
 #include "mongo/stdx/utility.h"
 #include "mongo/transport/transport_layer_asio.h"
+#include "mongo/transport/transport_layer_grpc.h"
 #include "mongo/util/exit.h"
 #include "mongo/util/file.h"
 #include "mongo/util/log_global_settings.h"
@@ -748,12 +749,16 @@ int _main(int argc, char* argv[], char** envp) {
 
     OCSPManager::get()->startThreadPool();
 
-    transport::TransportLayerASIO::Options opts;
-    opts.enableIPv6 = shellGlobalParams.enableIPv6;
-    opts.mode = transport::TransportLayerASIO::Options::kEgress;
+    // transport::TransportLayerASIO::Options opts;
+    // opts.enableIPv6 = shellGlobalParams.enableIPv6;
+    // opts.mode = transport::TransportLayerASIO::Options::kEgress;
 
+    // serviceContext->setTransportLayer(
+        // std::make_unique<transport::TransportLayerASIO>(opts, nullptr));
+
+    transport::TransportLayerGRPC::Options opts;
     serviceContext->setTransportLayer(
-        std::make_unique<transport::TransportLayerASIO>(opts, nullptr));
+        std::make_unique<transport::TransportLayerGRPC>(opts, nullptr));
     auto tlPtr = serviceContext->getTransportLayer();
     uassertStatusOK(tlPtr->setup());
     uassertStatusOK(tlPtr->start());

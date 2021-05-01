@@ -95,15 +95,12 @@ public:
     BatonHandle makeBaton(OperationContext* opCtx) const override {
         stdx::lock_guard<Latch> lk(_tlsMutex);
         // TODO: figure out what to do about managers with more than one transport layer.
-        invariant(_tls.size() == 2);
-
-        // TODO: this is definitely not kosher
-        if (opCtx->getClient()->session() &&
-            opCtx->getClient()->session()->getTags() & transport::Session::kDefaultBatonHack) {
-            invariant(!opCtx->getBaton());
-            auto baton = std::make_shared<DefaultBaton>(opCtx);
-            opCtx->setBaton(baton);
-            return baton;
+        if (_tls.size() == 2) {
+            // TODO: consider renaming tag
+            if (opCtx->getClient()->session() &&
+                opCtx->getClient()->session()->getTags() & transport::Session::kDefaultBatonHack) {
+                return _tls[1]->makeBaton(opCtx);
+            }
         }
 
         return _tls[0]->makeBaton(opCtx);

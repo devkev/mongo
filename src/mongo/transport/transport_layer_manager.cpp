@@ -134,6 +134,15 @@ std::unique_ptr<TransportLayer> TransportLayerManager::createWithConfig(
     std::unique_ptr<TransportLayer> transportLayer;
     auto sep = ctx->getServiceEntryPoint();
 
+    std::vector<std::unique_ptr<TransportLayer>> transportLayers;
+    if (config->transportLayer == "grpc") {
+        transport::TransportLayerGRPC::Options options(config);
+        transportLayer = std::make_unique<transport::TransportLayerGRPC>(options, sep);
+        ctx->setServiceExecutor(std::make_unique<ServiceExecutorSynchronous>(ctx));
+        transportLayers.emplace_back(std::move(transportLayer));
+        return std::make_unique<TransportLayerManager>(std::move(transportLayers));
+    }
+
     transport::TransportLayerASIO::Options opts(config);
     if (config->serviceExecutor == "adaptive") {
         opts.transportMode = transport::Mode::kAsynchronous;
@@ -156,9 +165,11 @@ std::unique_ptr<TransportLayer> TransportLayerManager::createWithConfig(
     std::vector<std::unique_ptr<TransportLayer>> retVector;
     retVector.emplace_back(std::move(transportLayer));
 
-    // throw on an extra transport layer for gRPC
+    // Listen for gRPC connections on 0.0.0.0:50051 at the same time as mongorpc, this
+    // makes it much easier to compare the two implementations.
+    transport::TransportLayerGRPC::Options options{{"0.0.0.0"}, 50051};
     std::unique_ptr<TransportLayer> grpcTransport =
-        std::make_unique<transport::TransportLayerGRPC>(sep);
+        std::make_unique<transport::TransportLayerGRPC>(options, sep);
     retVector.emplace_back(std::move(grpcTransport));
 
     return std::make_unique<TransportLayerManager>(std::move(retVector));

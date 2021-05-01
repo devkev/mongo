@@ -80,7 +80,7 @@ struct ServerGlobalParams {
     bool noUnixSocket = false;    // --nounixsocket
     bool doFork = false;          // --fork
     std::string socket = "/tmp";  // UNIX domain socket directory
-    std::string transportLayer;   // --transportLayer (must be either "asio" or "legacy")
+    std::string transportLayer;   // --transportLayer (must be either "asio" or "grpc")
 
     // --serviceExecutor ("adaptive", "synchronous")
     std::string serviceExecutor;

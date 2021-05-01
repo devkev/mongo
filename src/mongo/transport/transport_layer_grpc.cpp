@@ -27,8 +27,18 @@
  *    it in the license file.
  */
 
+#define MONGO_LOG_DEFAULT_COMPONENT ::mongo::logger::LogComponent::kNetwork
+
+#define GRPC_CALLBACK_API_NONEXPERIMENTAL 1
+#include <grpcpp/grpcpp.h>
+
+#include "mongo/transport/mongodb.grpc.pb.h"
+#include "mongo/transport/mongodb.pb.h"
+
 #include "mongo/transport/transport_layer_grpc.h"
+#include "mongo/transport/reactor_asio.h"
 #include "mongo/transport/service_entry_point.h"
+#include "mongo/transport/transport_layer_asio.h"
 
 #include "mongo/platform/basic.h"
 
@@ -58,12 +68,182 @@ struct lazy_convert_construct {
     Factory factory_;
 };
 
-std::mutex g_display_mutex;
-void threadLog(const std::string& message) {
-    std::thread::id this_id = std::this_thread::get_id();
-    g_display_mutex.lock();
-    std::cout << "thread(" << this_id << "): " << message << "\n";
-    g_display_mutex.unlock();
+class TransportLayerGRPC::TransportServiceImpl final : public mongodb::Transport::CallbackService {
+public:
+    explicit TransportServiceImpl(TransportLayerGRPC* transportLayer);
+
+private:
+    grpc::ServerUnaryReactor* SendMessage(grpc::CallbackServerContext* context,
+                                            const mongodb::Message* request,
+                                            mongodb::Message* response) override;
+
+    TransportLayerGRPC* _tl;
+};
+
+class TransportLayerGRPC::GRPCSession : public Session {
+    GRPCSession(const GRPCSession&) = delete;
+    GRPCSession& operator=(const GRPCSession&) = delete;
+
+public:
+    explicit GRPCSession(TransportLayer* tl, const std::string& lcid)
+        : _tl(checked_cast<TransportLayerGRPC*>(tl)), _lcid(lcid) {
+        setTags(kDefaultBatonHack);
+    }
+
+    ~GRPCSession() {
+        end();
+    }
+
+    TransportLayer* getTransportLayer() const override {
+        return _tl;
+    }
+
+    const std::string& lcid() const {
+        return _lcid;
+    }
+
+    const HostAndPort& remote() const override {
+        return _remote;
+    }
+
+    const HostAndPort& local() const override {
+        return _local;
+    }
+
+    const SockAddr& remoteAddr() const override {
+        return _remoteAddr;
+    }
+
+    const SockAddr& localAddr() const override {
+        return _localAddr;
+    }
+
+    void end() override;
+    StatusWith<Message> sourceMessage() override;
+    Future<Message> asyncSourceMessage(const BatonHandle& handle = nullptr) override {
+        return Future<Message>::makeReady(sourceMessage());
+    }
+
+    Status sinkMessage(Message message) override;
+    Future<void> asyncSinkMessage(Message message,
+                                    const BatonHandle& handle = nullptr) override {
+        return Future<void>::makeReady(sinkMessage(message));
+    }
+
+    // TODO: do we need these?
+    void cancelAsyncOperations(const BatonHandle& handle = nullptr) override {}
+    void setTimeout(boost::optional<Milliseconds>) override {}
+    bool isConnected() override {
+        return true;
+    }
+
+protected:
+    friend class TransportLayerGRPC::TransportServiceImpl;
+    TransportLayerGRPC* _tl;
+    std::string _lcid;
+
+    HostAndPort _remote{};
+    HostAndPort _local{};
+    SockAddr _remoteAddr;
+    SockAddr _localAddr;
+
+    struct PendingRequest {
+        const mongodb::Message* request;
+        mongodb::Message* response;
+        grpc::ServerUnaryReactor* reactor;
+    };
+
+    Mutex _mutex = MONGO_MAKE_LATCH("GRPCSession::_mutex");
+    // TODO: using PendingRequestPtr = std::unique_ptr<PendingRequest>;
+    MultiProducerSingleConsumerQueue<PendingRequest*> _pendingRequests;
+    PendingRequest* _currentRequest = nullptr;
+};
+
+class TransportLayerGRPC::GRPCEgressSession : public Session {
+    GRPCEgressSession(const GRPCEgressSession&) = delete;
+    GRPCEgressSession& operator=(const GRPCEgressSession&) = delete;
+
+public:
+    explicit GRPCEgressSession(TransportLayer* tl, std::shared_ptr<grpc::Channel> channel)
+        : _tl(checked_cast<TransportLayerGRPC*>(tl)),
+            _lcid(UUID::gen().toString()),
+            _stub(mongodb::Transport::NewStub(channel)) {
+        setTags(kDefaultBatonHack);
+    }
+
+    ~GRPCEgressSession() {
+        end();
+    }
+
+    TransportLayer* getTransportLayer() const override {
+        return _tl;
+    }
+
+    const std::string& lcid() const {
+        return _lcid;
+    }
+
+    const HostAndPort& remote() const override {
+        return _remote;
+    }
+
+    const HostAndPort& local() const override {
+        return _local;
+    }
+
+    const SockAddr& remoteAddr() const override {
+        return _remoteAddr;
+    }
+
+    const SockAddr& localAddr() const override {
+        return _localAddr;
+    }
+
+    void end() override;
+    StatusWith<Message> sourceMessage() override;
+    Future<Message> asyncSourceMessage(const BatonHandle& handle = nullptr) override {
+        return Future<Message>::makeReady(sourceMessage());
+    }
+
+    Status sinkMessage(Message message) override {
+        return asyncSinkMessage(message).getNoThrow();
+    }
+    Future<void> asyncSinkMessage(Message message,
+                                    const BatonHandle& handle = nullptr) override;
+
+    void cancelAsyncOperations(const BatonHandle& handle = nullptr) override {}
+    void setTimeout(boost::optional<Milliseconds>) override {}
+    bool isConnected() override {
+        return true;
+    }
+
+protected:
+    TransportLayerGRPC* _tl;
+    std::string _lcid;
+
+    HostAndPort _remote{};
+    HostAndPort _local{};
+    SockAddr _remoteAddr;
+    SockAddr _localAddr;
+
+    std::unique_ptr<mongodb::Transport::Stub> _stub;
+    SingleProducerSingleConsumerQueue<Message> _responses;
+
+    struct PendingRequest {
+        std::unique_ptr<mongodb::Message> request;
+        std::unique_ptr<mongodb::Message> response;
+        std::unique_ptr<grpc::ClientContext> context;
+        Promise<void> promise;
+    };
+
+    Mutex _mutex = MONGO_MAKE_LATCH("GRPCEgressSession::_mutex");
+    std::list<std::weak_ptr<PendingRequest>> _pendingRequests;
+};
+
+Message messageFromPayload(const std::string& payload) {
+    auto requestBuffer = SharedBuffer::allocate(payload.size());
+    memcpy(requestBuffer.get(), payload.data(), payload.size());
+    return Message(std::move(requestBuffer));
 }
 
 TransportLayerGRPC::TransportServiceImpl::TransportServiceImpl(TransportLayerGRPC* tl) : _tl(tl) {}
@@ -96,11 +276,9 @@ void TransportLayerGRPC::GRPCSession::end() {
 
 StatusWith<Message> TransportLayerGRPC::GRPCSession::sourceMessage() {
     _currentRequest = _pendingRequests.pop();
-    auto requestMessage = _currentRequest->request->payload();
-    auto buffer = SharedBuffer::allocate(requestMessage.size());
-    memcpy(buffer.get(), requestMessage.data(), requestMessage.size());
+    auto requestMessage = messageFromPayload(_currentRequest->request->payload());
     networkCounter.hitPhysicalIn(requestMessage.size());
-    return Message(std::move(buffer));
+    return std::move(requestMessage);
 }
 
 Status TransportLayerGRPC::GRPCSession::sinkMessage(Message message) {
@@ -114,19 +292,95 @@ Status TransportLayerGRPC::GRPCSession::sinkMessage(Message message) {
     return Status::OK();
 }
 
-TransportLayerGRPC::TransportLayerGRPC(ServiceEntryPoint* sep) : _sep(sep), _service(this) {}
+void TransportLayerGRPC::GRPCEgressSession::end() {
+    stdx::lock_guard<Latch> lk(_mutex);
+    for (auto pendingRequest : _pendingRequests) {
+        if (auto pr = pendingRequest.lock()) {
+            pr->context->TryCancel();
+        }
+    }
+    _pendingRequests.clear();
+}
+
+StatusWith<Message> TransportLayerGRPC::GRPCEgressSession::sourceMessage() {
+    return _responses.pop();
+}
+
+Future<void> TransportLayerGRPC::GRPCEgressSession::asyncSinkMessage(Message message,
+                                                                     const BatonHandle& handle) {
+    auto pr = std::make_shared<PendingRequest>();
+    pr->response = std::make_unique<mongodb::Message>();
+
+    pr->request = std::make_unique<mongodb::Message>();
+    pr->request->set_payload(std::string(message.buf(), message.size()));
+    networkCounter.hitPhysicalOut(message.size());
+    networkCounter.hitLogicalOut(message.size());
+
+    pr->context = std::make_unique<grpc::ClientContext>();
+    pr->context->AddMetadata("lcid", _lcid);
+
+    // TODO: Cancellation might be a little inefficiently implemented here
+    std::list<std::weak_ptr<PendingRequest>>::iterator it;
+    {
+        stdx::lock_guard<Latch> lk(_mutex);
+        it = _pendingRequests.emplace(_pendingRequests.end(), pr);
+    }
+
+    auto pf = makePromiseFuture<void>();
+    pr->promise = std::move(pf.promise);
+
+    _stub->async()->SendMessage(pr->context.get(),
+                                pr->request.get(),
+                                pr->response.get(),
+                                [this, pr, it = std::move(it)](grpc::Status s) {
+                                    // remove the pending request context
+                                    {
+                                        stdx::lock_guard<Latch> lk(_mutex);
+                                        _pendingRequests.erase(it);
+                                    }
+
+                                    if (!s.ok()) {
+                                        pr->promise.setError({ErrorCodes::InternalError, s.error_message()});
+                                        return;
+                                    }
+
+                                    auto message = messageFromPayload(pr->response->payload());
+                                    networkCounter.hitPhysicalIn(message.size());
+                                    networkCounter.hitLogicalIn(message.size());
+                                    _responses.push(std::move(message));
+                                    pr->promise.emplaceValue();
+                                });
+
+    return std::move(pf.future);
+}
+
+TransportLayerGRPC::Options::Options(const ServerGlobalParams* params)
+    : ipList(params->bind_ips), port(params->port) {}
+
+TransportLayerGRPC::Options::Options(const std::vector<std::string>& ipList, int port)
+    : ipList(ipList), port(port) {}
+
+TransportLayerGRPC::TransportLayerGRPC(const Options& options, ServiceEntryPoint* sep)
+    : _options(options), _sep(sep), _service(std::make_unique<TransportServiceImpl>(this)) {}
+
+TransportLayerGRPC::~TransportLayerGRPC() {
+    shutdown();
+}
 
 StatusWith<SessionHandle> TransportLayerGRPC::connect(HostAndPort peer,
                                                       ConnectSSLMode sslMode,
                                                       Milliseconds timeout) {
-    MONGO_UNREACHABLE;
+    std::cout << fmt::format("creating new egress connection to: {}\n", peer.toString());
+    SessionHandle session(new GRPCEgressSession(
+        this, grpc::CreateChannel(peer.toString(), grpc::InsecureChannelCredentials())));
+    return std::move(session);
 }
 
 Future<SessionHandle> TransportLayerGRPC::asyncConnect(HostAndPort peer,
                                                        ConnectSSLMode sslMode,
                                                        const ReactorHandle& reactor,
                                                        Milliseconds timeout) {
-    MONGO_UNREACHABLE;
+    return Future<SessionHandle>::makeReady(connect(peer, sslMode, timeout));
 }
 
 Status TransportLayerGRPC::setup() {
@@ -135,12 +389,24 @@ Status TransportLayerGRPC::setup() {
 
 Status TransportLayerGRPC::start() {
     _thread = stdx::thread([this] {
+        setThreadName("grpcListener");
+
         grpc::EnableDefaultHealthCheckService(true);
         grpc::reflection::InitProtoReflectionServerBuilderPlugin();
 
         grpc::ServerBuilder builder;
-        builder.AddListeningPort("0.0.0.0:50051", grpc::InsecureServerCredentials());
-        builder.RegisterService(&_service);
+        if (_options.ipList.size()) {
+            for (auto ip : _options.ipList) {
+                auto address = fmt::format("{}:{}", ip, _options.port);
+                std::cout << "listening on : " << address << std::endl;
+                builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+            }
+        } else {
+            std::cout << "listening to everything on default port" << std::endl;
+            builder.AddListeningPort("0.0.0.0:27017", grpc::InsecureServerCredentials());
+        }
+
+        builder.RegisterService(_service.get());
         _server = builder.BuildAndStart();
         _server->Wait();
     });
@@ -153,21 +419,21 @@ void TransportLayerGRPC::shutdown() {
     _server->Shutdown();
 }
 
+thread_local ASIOReactor* ASIOReactor::_reactorForThread = nullptr;
 ReactorHandle TransportLayerGRPC::getReactor(WhichReactor which) {
-    return nullptr;
-}
-
-TransportLayerGRPC::~TransportLayerGRPC() {
-    shutdown();
+    invariant(which == TransportLayer::kNewReactor);
+    return std::make_shared<ASIOReactor>();
 }
 
 TransportLayerGRPC::GRPCSessionHandle TransportLayerGRPC::getLogicalSessionHandle(
     const std::string& lcid) {
-    // NOTE: maybe less lock contention with this approach, but requires double lookup for session id
+    // NOTE: maybe less lock contention with this approach, but requires double lookup for
+    //       session id.
     // absl::flat_hash_map<std::string, GRPCSessionHandle>::iterator sit = _sessions.find(lcid);
     // if (sit == _sessions.end()) {
     //     stdx::lock_guard<Latch> lk(_mutex);
-    //     auto [entry, emplaced] = _sessions.emplace(lcid, std::make_shared<GRPCSession>(this, lcid));
+    //     auto [entry, emplaced] =
+    //         _sessions.emplace(lcid, std::make_shared<GRPCSession>(this, lcid));
     //     if (!emplaced) {
     //         // throw an exception?
     //     }

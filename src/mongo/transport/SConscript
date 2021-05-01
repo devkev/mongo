@@ -32,6 +32,7 @@ env.Library(
 )
 
 grpcEnv = env.Clone()
+grpcEnv.InjectThirdParty(libraries=['asio'])
 
 # TODO: Remove third_party abseil since gRPC is built with its own copy. This should
 #       not be required in the future if we bundle gRPC itself, we can link to our
@@ -125,7 +126,8 @@ grpcEnv.Library(
         'transport_layer_common',
     ] + [ '%s/lib/%s.a' % (grpcPrefix, lib) for lib in grpcLibDepNames ],
     LIBDEPS_PRIVATE=[
-        '$BUILD_DIR/mongo/util/net/network'
+        '$BUILD_DIR/mongo/util/net/network',
+        '$BUILD_DIR/third_party/shim_asio', # for ASIOReactor
     ]
 )
 
