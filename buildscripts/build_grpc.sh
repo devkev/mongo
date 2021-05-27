@@ -7,8 +7,15 @@ set -ex
 # based on this script:
 #   https://github.com/grpc/grpc/blob/460898f11c464d66157ce539a22d71c896500444/test/distrib/cpp/run_distrib_test_cmake.sh
 
+# install openssl (to use instead of boringssl)
+if ! dpkg -l libssl-dev | grep -q '^ii  libssl-dev\>'; then
+    echo 'Error: libssl-dev must be installed, install it with:' 1>&2
+    echo '    apt-get update && apt-get install -y libssl-dev' 1>&2
+    exit 1
+fi
+
 if [ "$#" -ne 1 ]; then
-  echo "missing required parameter for install prefix"
+  echo "missing required parameter for install prefix" 1>&2
   exit 1
 fi
 
@@ -21,13 +28,10 @@ PARALLEL_JOBS=20
 # ensure we are using binaries from our own prefix for all builds here
 export PATH="$GRPC_INSTALL_PREFIX/bin:$PATH"
 
-# install openssl (to use instead of boringssl)
-apt-get update && apt-get install -y libssl-dev
-
 # download the gRPC source to the work directory
 # NOTE: can't use a tarball download because it won't include git submodules
 # wget -c "$GRPC_URI/archive/$GRPC_TAG.tar.gz" -O - | tar -xz --strip-components 1 -C $WORK_DIR
-git clone --depth 1 $GRPC_URI $WORK_DIR
+git clone $GRPC_URI $WORK_DIR
 pushd $WORK_DIR
 git reset --hard $GRPC_TAG
 git submodule update --init
