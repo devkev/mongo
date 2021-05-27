@@ -43,7 +43,6 @@ grpcPrefix = grpcEnv['GRPC_PREFIX']
 #       does not seem to support file nodes.
 grpcLibDepNames = [
     'libaddress_sorting',
-    'libcares_static',
     'libgpr',
     'libgrpc',
     'libgrpc++',
@@ -124,6 +123,7 @@ grpcEnv.Library(
     ],
     LIBDEPS=[
         'transport_layer_common',
+        '%s/lib/libcares.so' % grpcPrefix,
     ] + [ '%s/lib/%s.a' % (grpcPrefix, lib) for lib in grpcLibDepNames ],
     LIBDEPS_PRIVATE=[
         '$BUILD_DIR/mongo/util/net/network',
