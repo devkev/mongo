@@ -42,7 +42,7 @@
 #include <sys/poll.h>
 #endif  // ndef _WIN32
 
-#include <asio.hpp>
+#include "asio.hpp"
 
 namespace mongo {
 namespace transport {
