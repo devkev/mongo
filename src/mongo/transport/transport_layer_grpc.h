@@ -50,9 +50,22 @@ class TransportLayerGRPC : public TransportLayer {
 
 public:
     struct Options {
+        constexpr static auto kIngress = 0x1;
+        constexpr static auto kEgress = 0x10;
+
         explicit Options(const ServerGlobalParams* params);
         explicit Options(const std::vector<std::string>& ipList, int port);
         Options() = default;
+
+        int mode = kIngress | kEgress;
+
+        bool isIngress() const {
+            return mode & kIngress;
+        }
+
+        bool isEgress() const {
+            return mode & kEgress;
+        }
 
         std::vector<std::string> ipList;               // addresses to bind to
         int port = ServerGlobalParams::DefaultDBPort;  // port to bind to

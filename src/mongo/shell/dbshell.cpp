@@ -757,6 +757,7 @@ int _main(int argc, char* argv[], char** envp) {
         // std::make_unique<transport::TransportLayerASIO>(opts, nullptr));
 
     transport::TransportLayerGRPC::Options opts;
+    opts.mode = transport::TransportLayerGRPC::Options::kEgress;
     serviceContext->setTransportLayer(
         std::make_unique<transport::TransportLayerGRPC>(opts, nullptr));
     auto tlPtr = serviceContext->getTransportLayer();

@@ -388,28 +388,30 @@ Status TransportLayerGRPC::setup() {
 }
 
 Status TransportLayerGRPC::start() {
-    _thread = stdx::thread([this] {
-        setThreadName("grpcListener");
+    if (_options.isIngress()) {
+        _thread = stdx::thread([this] {
+            setThreadName("grpcListener");
 
-        grpc::EnableDefaultHealthCheckService(true);
-        grpc::reflection::InitProtoReflectionServerBuilderPlugin();
+            grpc::EnableDefaultHealthCheckService(true);
+            grpc::reflection::InitProtoReflectionServerBuilderPlugin();
 
-        grpc::ServerBuilder builder;
-        if (_options.ipList.size()) {
-            for (auto ip : _options.ipList) {
-                auto address = fmt::format("{}:{}", ip, _options.port);
-                std::cout << "listening on : " << address << std::endl;
-                builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+            grpc::ServerBuilder builder;
+            if (_options.ipList.size()) {
+                for (auto ip : _options.ipList) {
+                    auto address = fmt::format("{}:{}", ip, _options.port);
+                    std::cout << "listening on : " << address << std::endl;
+                    builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+                }
+            } else {
+                std::cout << "listening to everything on default port" << std::endl;
+                builder.AddListeningPort("0.0.0.0:27017", grpc::InsecureServerCredentials());
             }
-        } else {
-            std::cout << "listening to everything on default port" << std::endl;
-            builder.AddListeningPort("0.0.0.0:27017", grpc::InsecureServerCredentials());
-        }
 
-        builder.RegisterService(_service.get());
-        _server = builder.BuildAndStart();
-        _server->Wait();
-    });
+            builder.RegisterService(_service.get());
+            _server = builder.BuildAndStart();
+            _server->Wait();
+        });
+    }
 
     return Status::OK();
 }
