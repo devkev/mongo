@@ -403,8 +403,9 @@ Status TransportLayerGRPC::start() {
                     builder.AddListeningPort(address, grpc::InsecureServerCredentials());
                 }
             } else {
-                std::cout << "listening to everything on default port" << std::endl;
-                builder.AddListeningPort("0.0.0.0:27017", grpc::InsecureServerCredentials());
+                auto address = fmt::format("0.0.0.0:{}", _options.port);
+                std::cout << "listening to everything on : " << address << std::endl;
+                builder.AddListeningPort(address, grpc::InsecureServerCredentials());
             }
 
             builder.RegisterService(_service.get());
