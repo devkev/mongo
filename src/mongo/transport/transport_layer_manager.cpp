@@ -165,9 +165,11 @@ std::unique_ptr<TransportLayer> TransportLayerManager::createWithConfig(
     std::vector<std::unique_ptr<TransportLayer>> retVector;
     retVector.emplace_back(std::move(transportLayer));
 
-    // Listen for gRPC connections on 0.0.0.0:50051 at the same time as mongorpc, this
+    // Listen for gRPC connections on an offset port at the same time as mongorpc, this
     // makes it much easier to compare the two implementations.
-    transport::TransportLayerGRPC::Options options{{"0.0.0.0"}, 50051};
+    transport::TransportLayerGRPC::Options options{
+        {"0.0.0.0"},
+        config->port + transport::TransportLayerGRPC::kPortOffset};
     std::unique_ptr<TransportLayer> grpcTransport =
         std::make_unique<transport::TransportLayerGRPC>(options, sep);
     retVector.emplace_back(std::move(grpcTransport));

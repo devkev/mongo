@@ -49,6 +49,8 @@ class TransportLayerGRPC : public TransportLayer {
     TransportLayerGRPC& operator=(const TransportLayerGRPC&) = delete;
 
 public:
+    constexpr static int kPortOffset = 1000;
+
     struct Options {
         constexpr static auto kIngress = 0x1;
         constexpr static auto kEgress = 0x10;
