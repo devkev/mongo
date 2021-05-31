@@ -75,6 +75,7 @@ struct ShellGlobalParams {
     std::string readMode = "compatibility";
     bool shouldRetryWrites = false;
     bool shouldUseImplicitSessions = true;
+    std::string transportLayer = "grpc";  // "legacy" or "grpc"
 
     boost::optional<rpc::ProtocolSet> rpcProtocols = boost::none;
 

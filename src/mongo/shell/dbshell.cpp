@@ -749,17 +749,22 @@ int _main(int argc, char* argv[], char** envp) {
 
     OCSPManager::get()->startThreadPool();
 
-    // transport::TransportLayerASIO::Options opts;
-    // opts.enableIPv6 = shellGlobalParams.enableIPv6;
-    // opts.mode = transport::TransportLayerASIO::Options::kEgress;
+    if (shellGlobalParams.transportLayer == "legacy") {
+        transport::TransportLayerASIO::Options opts;
+        opts.enableIPv6 = shellGlobalParams.enableIPv6;
+        opts.mode = transport::TransportLayerASIO::Options::kEgress;
 
-    // serviceContext->setTransportLayer(
-        // std::make_unique<transport::TransportLayerASIO>(opts, nullptr));
+        serviceContext->setTransportLayer(
+            std::make_unique<transport::TransportLayerASIO>(opts, nullptr));
+    } else if (shellGlobalParams.transportLayer == "grpc") {
+        transport::TransportLayerGRPC::Options opts;
+        opts.mode = transport::TransportLayerGRPC::Options::kEgress;
 
-    transport::TransportLayerGRPC::Options opts;
-    opts.mode = transport::TransportLayerGRPC::Options::kEgress;
-    serviceContext->setTransportLayer(
-        std::make_unique<transport::TransportLayerGRPC>(opts, nullptr));
+        serviceContext->setTransportLayer(
+            std::make_unique<transport::TransportLayerGRPC>(opts, nullptr));
+    } else {
+        MONGO_UNREACHABLE;
+    }
     auto tlPtr = serviceContext->getTransportLayer();
     uassertStatusOK(tlPtr->setup());
     uassertStatusOK(tlPtr->start());

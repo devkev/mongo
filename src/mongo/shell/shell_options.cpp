@@ -209,6 +209,15 @@ Status storeMongoShellOptions(const moe::Environment& params,
         }
         shellGlobalParams.rpcProtocols = parsedRPCProtos.getValue();
     }
+    if (params.count("transportLayer")) {
+        std::string transportLayer = params["transportLayer"].as<string>();
+        if (transportLayer != "legacy" && transportLayer != "grpc") {
+            uasserted(5005103,
+                      str::stream() << "Unknown transportLayer option: '" << transportLayer
+                                    << "'. Valid values are \"legacy\" or \"grpc\".");
+        }
+        shellGlobalParams.transportLayer = transportLayer;
+    }
 
     /* This is a bit confusing, here are the rules:
      *

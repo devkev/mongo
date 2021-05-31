@@ -147,6 +147,10 @@ configs:
     description: " none, opQueryOnly, opMsgOnly, all"
     arg_vartype: String
     hidden: true
+  "transportLayer":
+    description: "underlying TransportLayer implementation to use: legacy, grpc"
+    arg_vartype: String
+    hidden: true
   "jsHeapLimitMB":
     description: "set the js scope's heap size limit"
     arg_vartype: Int
