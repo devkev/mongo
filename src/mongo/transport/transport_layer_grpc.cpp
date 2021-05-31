@@ -40,6 +40,7 @@
 #include "mongo/transport/service_entry_point.h"
 #include "mongo/transport/transport_layer_asio.h"
 
+#include "mongo/logv2/log.h"
 #include "mongo/platform/basic.h"
 
 #include "mongo/db/stats/counters.h"
@@ -370,7 +371,7 @@ TransportLayerGRPC::~TransportLayerGRPC() {
 StatusWith<SessionHandle> TransportLayerGRPC::connect(HostAndPort peer,
                                                       ConnectSSLMode sslMode,
                                                       Milliseconds timeout) {
-    std::cout << fmt::format("creating new egress connection to: {}\n", peer.toString());
+    LOGV2(5005101, "creating new grpc egress connection", "peer"_attr = peer.toString());
     SessionHandle session(new GRPCEgressSession(
         this, grpc::CreateChannel(peer.toString(), grpc::InsecureChannelCredentials())));
     return std::move(session);
@@ -387,6 +388,15 @@ Status TransportLayerGRPC::setup() {
     return Status::OK();
 }
 
+namespace {
+
+void setupListen(grpc::ServerBuilder* builder, const std::string& address) {
+    LOGV2(5005102, "listening for grpc", "listenAddress"_attr = address);
+    builder->AddListeningPort(address, grpc::InsecureServerCredentials());
+}
+
+}  // namespace
+
 Status TransportLayerGRPC::start() {
     if (_options.isIngress()) {
         _thread = stdx::thread([this] {
@@ -396,16 +406,12 @@ Status TransportLayerGRPC::start() {
             grpc::reflection::InitProtoReflectionServerBuilderPlugin();
 
             grpc::ServerBuilder builder;
-            if (_options.ipList.size()) {
-                for (auto ip : _options.ipList) {
-                    auto address = fmt::format("{}:{}", ip, _options.port);
-                    std::cout << "listening on : " << address << std::endl;
-                    builder.AddListeningPort(address, grpc::InsecureServerCredentials());
-                }
+            if (_options.ipList.empty()) {
+                setupListen(&builder, fmt::format("0.0.0.0:{}", _options.port));
             } else {
-                auto address = fmt::format("0.0.0.0:{}", _options.port);
-                std::cout << "listening to everything on : " << address << std::endl;
-                builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+                for (auto ip : _options.ipList) {
+                    setupListen(&builder, fmt::format("{}:{}", ip, _options.port));
+                }
             }
 
             builder.RegisterService(_service.get());
